@@ -23,10 +23,12 @@ import SearchIcon from '@mui/icons-material/Search';
 import CancelIcon from '@mui/icons-material/Cancel';
 import MailIcon from '@mui/icons-material/Mail';
 import SendIcon from '@mui/icons-material/Send';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { Tooltip, Box, Typography, Menu, MenuItem, TextField, InputAdornment, Chip, Badge } from '@mui/material';
+import { Tooltip, Box, Typography, Menu, MenuItem, TextField, InputAdornment, Chip, Badge, Popover, Button, IconButton, Stack, Snackbar } from '@mui/material';
 import { Booking, BookingLabel, MailLog } from '@/types';
 import LabelBadge from './LabelBadge';
 import AdHocEmailDialog from './AdHocEmailDialog';
@@ -69,6 +71,22 @@ const StyledTextField = styled(TextField)<{
     opacity: ownerState.expanded ? 1 : 0,
     transition: theme.transitions.create(['width', 'opacity']),
 }));
+
+const TOKEN_ALPHABET = '12345789ACDEFGHKMNPQSTWXYZ';
+const TOKEN_LENGTH = 5;
+
+const generateToken = (existingTokens: Set<string>): string => {
+    let token = '';
+    let attempts = 0;
+    do {
+        token = '';
+        for (let i = 0; i < TOKEN_LENGTH; i++) {
+            token += TOKEN_ALPHABET.charAt(Math.floor(Math.random() * TOKEN_ALPHABET.length));
+        }
+        attempts++;
+    } while (existingTokens.has(token) && attempts < 100);
+    return token;
+};
 
 function CustomToolbar() {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -188,6 +206,12 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
 
     const [emailDialog, setEmailDialog] = useState<{open: boolean, booking: Booking | null}>({open: false, booking: null});
 
+    // Token Popover State
+    const [tokenAnchorEl, setTokenAnchorEl] = useState<null | HTMLElement>(null);
+    const [activeTokenBooking, setActiveTokenBooking] = useState<Booking | null>(null);
+    const [tempToken, setTempToken] = useState('');
+    const [snackMsg, setSnackMsg] = useState<string | null>(null);
+
     const { data: rows = [] } = useQuery({
         queryKey: ['bookings', tenantId, slug],
         queryFn: () => api.get<Booking[]>(`/${tenantId}/events/${slug}/bookings`),
@@ -232,6 +256,44 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
         setActiveBookingId(null);
     };
 
+    // Token Handlers
+    const handleTokenClick = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
+        event.stopPropagation();
+        setTokenAnchorEl(event.currentTarget);
+        setActiveTokenBooking(booking);
+        setTempToken(booking.token || '');
+    };
+
+    const handleTokenClose = () => {
+        setTokenAnchorEl(null);
+        setActiveTokenBooking(null);
+        setTempToken('');
+    };
+
+    const handleTokenUpdate = async (newToken: string | null) => {
+        if (!activeTokenBooking) return;
+        try {
+            await api.put(`/${tenantId}/bookings/${activeTokenBooking.id}`, { token: newToken || "" });
+            queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, slug] });
+            handleTokenClose();
+            setSnackMsg('Token updated');
+        } catch (e) {
+            console.error(e);
+            setSnackMsg('Failed to update token');
+        }
+    };
+
+    const handleGenerateToken = () => {
+        const existingTokens = new Set(rows.map(r => r.token).filter(Boolean) as string[]);
+        const newToken = generateToken(existingTokens);
+        setTempToken(newToken);
+    };
+
+    const handleCopyToken = () => {
+        navigator.clipboard.writeText(tempToken);
+        setSnackMsg('Token copied');
+    };
+
     const columns: GridColDef[] = [
         { field: 'customer_name', headerName: 'Name', width: 150 },
         { field: 'customer_email', headerName: 'Email', width: 200 },
@@ -250,6 +312,27 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
                     />
                 );
             }
+        },
+        {
+            field: 'token',
+            headerName: 'Token',
+            width: 100,
+            renderCell: (params) => (
+                <Box
+                    onClick={(e) => handleTokenClick(e, params.row as Booking)}
+                    sx={{
+                        cursor: 'pointer', width: '100%', height: '100%',
+                        display: 'flex', alignItems: 'center',
+                        '&:hover': { bgcolor: 'action.hover' }
+                    }}
+                >
+                    {params.value ? (
+                        <Typography variant="body2" fontFamily="monospace" fontWeight="bold">{params.value as string}</Typography>
+                    ) : (
+                        <Typography variant="caption" color="text.disabled" fontStyle="italic">None</Typography>
+                    )}
+                </Box>
+            )
         },
         {
             field: 'label_id',
@@ -365,6 +448,63 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
                     </MenuItem>
                 ))}
             </Menu>
+
+            <Popover
+                open={Boolean(tokenAnchorEl)}
+                anchorEl={tokenAnchorEl}
+                onClose={handleTokenClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Box p={2} width={280}>
+                    <Typography variant="subtitle2" gutterBottom>Manage Token</Typography>
+                    <Stack direction="row" spacing={1} mb={2}>
+                        <TextField
+                            size="small"
+                            fullWidth
+                            value={tempToken}
+                            onChange={(e) => setTempToken(e.target.value.toUpperCase())}
+                            placeholder="Token"
+                        />
+                        <Tooltip title="Generate New">
+                            <IconButton onClick={handleGenerateToken} size="small" sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                                <AutorenewIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                    <Stack direction="row" spacing={1} justifyContent="space-between">
+                        <Box>
+                            {tempToken && (
+                                <Tooltip title="Copy">
+                                    <IconButton size="small" onClick={handleCopyToken}>
+                                        <ContentCopyIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                            <Tooltip title="Clear">
+                                <IconButton size="small" color="error" onClick={() => setTempToken('')}>
+                                    <DeleteIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                        <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => handleTokenUpdate(tempToken || null)}
+                        >
+                            Save
+                        </Button>
+                    </Stack>
+                </Box>
+            </Popover>
+
+            <Snackbar
+                open={!!snackMsg}
+                autoHideDuration={3000}
+                onClose={() => setSnackMsg(null)}
+                message={snackMsg}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            />
 
             {eventTimezone && (
                 <Box p={1} px={2}>

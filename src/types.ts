@@ -12,6 +12,7 @@ export interface Booking {
     label_id?: string;
     status: string;
     management_token: string;
+    token?: string;
     created_at: string;
 }
 

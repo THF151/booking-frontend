@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
-    Box, Paper, Typography, Chip, Stack, IconButton, Menu, MenuItem, Tooltip, ToggleButton, ToggleButtonGroup
+    Box, Paper, Typography, Chip, Stack, IconButton, Menu, MenuItem, Tooltip, ToggleButton, ToggleButtonGroup,
+    Popover, TextField, Button, Snackbar
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import EventIcon from '@mui/icons-material/Event';
@@ -9,10 +10,17 @@ import CommentIcon from '@mui/icons-material/Comment';
 import LabelIcon from '@mui/icons-material/Label';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteIcon from '@mui/icons-material/Delete';
 import dayjs, { Dayjs } from 'dayjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dictionary, Booking, BookingLabel, Event } from '@/types';
 import LabelBadge from '@/components/admin/LabelBadge';
+import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface DailyBookingListProps {
     selectedDate: Dayjs | null;
@@ -26,12 +34,37 @@ interface DailyBookingListProps {
     onLabelUpdate: (bookingId: string, labelId: string | null) => Promise<void>;
 }
 
+const TOKEN_ALPHABET = '12345789ACDEFGHKMNPQSTWXYZ';
+const TOKEN_LENGTH = 5;
+
+const generateToken = (existingTokens: Set<string>): string => {
+    let token = '';
+    let attempts = 0;
+    do {
+        token = '';
+        for (let i = 0; i < TOKEN_LENGTH; i++) {
+            token += TOKEN_ALPHABET.charAt(Math.floor(Math.random() * TOKEN_ALPHABET.length));
+        }
+        attempts++;
+    } while (existingTokens.has(token) && attempts < 100);
+    return token;
+};
+
 export default function DailyBookingList({
-                                             selectedDate, bookings, labels, events, currentTz, lang, dict, onLabelUpdate
+                                             selectedDate, bookings, labels, events, currentTz, lang, dict, eventSlug, onLabelUpdate
                                          }: DailyBookingListProps) {
+    const { tenantId } = useAuthStore();
+    const queryClient = useQueryClient();
+
     const [labelMenuAnchor, setLabelMenuAnchor] = useState<null | HTMLElement>(null);
     const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'comfortable' | 'compact'>('comfortable');
+
+    // Token management state
+    const [tokenAnchorEl, setTokenAnchorEl] = useState<null | HTMLElement>(null);
+    const [activeTokenBooking, setActiveTokenBooking] = useState<Booking | null>(null);
+    const [tempToken, setTempToken] = useState('');
+    const [snackMsg, setSnackMsg] = useState<string | null>(null);
 
     const selectedDateStr = selectedDate?.format('YYYY-MM-DD');
 
@@ -56,6 +89,50 @@ export default function DailyBookingList({
         }
         setLabelMenuAnchor(null);
         setActiveBookingId(null);
+    };
+
+    // Token Handlers
+    const handleTokenClick = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
+        event.stopPropagation();
+        setTokenAnchorEl(event.currentTarget);
+        setActiveTokenBooking(booking);
+        setTempToken(booking.token || '');
+    };
+
+    const handleTokenClose = () => {
+        setTokenAnchorEl(null);
+        setActiveTokenBooking(null);
+        setTempToken('');
+    };
+
+    const handleTokenUpdate = async () => {
+        if (!activeTokenBooking || !tenantId) return;
+        try {
+            await api.put(`/${tenantId}/bookings/${activeTokenBooking.id}`, { token: tempToken || "" });
+
+            // Invalidate queries to refresh data
+            if (eventSlug) {
+                queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, eventSlug] });
+            }
+            queryClient.invalidateQueries({ queryKey: ['bookings', tenantId] });
+
+            handleTokenClose();
+            setSnackMsg('Token updated');
+        } catch (e) {
+            console.error(e);
+            setSnackMsg('Failed to update token');
+        }
+    };
+
+    const handleGenerateToken = () => {
+        const existingTokens = new Set(bookings.map(r => r.token).filter(Boolean) as string[]);
+        const newToken = generateToken(existingTokens);
+        setTempToken(newToken);
+    };
+
+    const handleCopyToken = () => {
+        navigator.clipboard.writeText(tempToken);
+        setSnackMsg('Token copied');
     };
 
     const activeCount = selectedBookings.filter(b => b.status !== 'CANCELLED').length;
@@ -162,7 +239,7 @@ export default function DailyBookingList({
                                             key={booking.id}
                                             sx={{
                                                 display: 'grid',
-                                                gridTemplateColumns: '80px 1fr auto auto',
+                                                gridTemplateColumns: '80px 1fr auto auto auto',
                                                 alignItems: 'center',
                                                 gap: 2,
                                                 p: 1.5,
@@ -188,6 +265,26 @@ export default function DailyBookingList({
                                                 <Typography variant="caption" color="text.secondary" display="block">
                                                     {getEventTitle(booking.event_id)}
                                                 </Typography>
+                                            </Box>
+
+                                            <Box
+                                                onClick={(e) => handleTokenClick(e, booking)}
+                                                sx={{
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    bgcolor: booking.token ? 'action.selected' : 'transparent',
+                                                    px: 1, py: 0.5, borderRadius: 1,
+                                                    '&:hover': { bgcolor: 'action.hover' }
+                                                }}
+                                            >
+                                                {booking.token ? (
+                                                    <Typography variant="caption" fontFamily="monospace" fontWeight="bold" color="primary.main">
+                                                        {booking.token}
+                                                    </Typography>
+                                                ) : (
+                                                    <ConfirmationNumberIcon fontSize="small" color="action" sx={{ fontSize: 18, opacity: 0.5 }} />
+                                                )}
                                             </Box>
 
                                             <Box display="flex" alignItems="center" gap={1}>
@@ -258,6 +355,19 @@ export default function DailyBookingList({
                                                         <PersonIcon sx={{ fontSize: 16 }} />
                                                         <Typography variant="body2">{booking.customer_email}</Typography>
                                                     </Box>
+                                                    <Box
+                                                        display="flex"
+                                                        alignItems="center"
+                                                        gap={1}
+                                                        color="text.secondary"
+                                                        onClick={(e) => handleTokenClick(e, booking)}
+                                                        sx={{ cursor: 'pointer', width: 'fit-content', '&:hover': { color: 'primary.main' } }}
+                                                    >
+                                                        <ConfirmationNumberIcon sx={{ fontSize: 16 }} />
+                                                        <Typography variant="body2" fontFamily="monospace">
+                                                            {booking.token || <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Set Token</span>}
+                                                        </Typography>
+                                                    </Box>
                                                 </Stack>
 
                                                 {booking.customer_note && (
@@ -323,6 +433,64 @@ export default function DailyBookingList({
                     </MenuItem>
                 ))}
             </Menu>
+
+            {/* Token Popover */}
+            <Popover
+                open={Boolean(tokenAnchorEl)}
+                anchorEl={tokenAnchorEl}
+                onClose={handleTokenClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Box p={2} width={280}>
+                    <Typography variant="subtitle2" gutterBottom>Manage Token</Typography>
+                    <Stack direction="row" spacing={1} mb={2}>
+                        <TextField
+                            size="small"
+                            fullWidth
+                            value={tempToken}
+                            onChange={(e) => setTempToken(e.target.value.toUpperCase())}
+                            placeholder="Token"
+                        />
+                        <Tooltip title="Generate New">
+                            <IconButton onClick={handleGenerateToken} size="small" sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                                <AutorenewIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                    <Stack direction="row" spacing={1} justifyContent="space-between">
+                        <Box>
+                            {tempToken && (
+                                <Tooltip title="Copy">
+                                    <IconButton size="small" onClick={handleCopyToken}>
+                                        <ContentCopyIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                            <Tooltip title="Clear">
+                                <IconButton size="small" color="error" onClick={() => setTempToken('')}>
+                                    <DeleteIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                        <Button
+                            size="small"
+                            variant="contained"
+                            onClick={handleTokenUpdate}
+                        >
+                            Save
+                        </Button>
+                    </Stack>
+                </Box>
+            </Popover>
+
+            <Snackbar
+                open={!!snackMsg}
+                autoHideDuration={3000}
+                onClose={() => setSnackMsg(null)}
+                message={snackMsg}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            />
         </Paper>
     );
 }

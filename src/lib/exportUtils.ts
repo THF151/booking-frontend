@@ -7,6 +7,18 @@ import { Booking, BookingLabel, Event } from '@/types';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const splitName = (fullName: string) => {
+    if (!fullName) return { first: '', last: '' };
+    const lastSpaceIndex = fullName.lastIndexOf(' ');
+    if (lastSpaceIndex === -1) {
+        return { first: fullName, last: '' };
+    }
+    return {
+        first: fullName.substring(0, lastSpaceIndex),
+        last: fullName.substring(lastSpaceIndex + 1)
+    };
+};
+
 export const generateExportData = (
     bookings: Booking[],
     labels: BookingLabel[],
@@ -24,13 +36,18 @@ export const generateExportData = (
             ? (navigator.language.startsWith('de') ? event.title_de : event.title_en)
             : dictUnknownEvent;
 
+        const { first, last } = splitName(booking.customer_name);
+
         return {
             'Booking ID': booking.id,
             'Event ID': booking.event_id,
             'Event Title': eventTitle,
-            'Customer Name': booking.customer_name,
+            'First Name': first,
+            'Last Name': last,
+            'Full Name': booking.customer_name,
             'Customer Email': booking.customer_email,
             'Status': booking.status,
+            'Booking Token': booking.token || '',
             'Start Date': start.format('YYYY-MM-DD'),
             'Start Time': start.format('HH:mm'),
             'End Date': end.format('YYYY-MM-DD'),
@@ -58,6 +75,7 @@ export const downloadICS = (bookings: Booking[], events: Event[], eventSlug: str
         const event = events.find(e => e.id === booking.event_id);
         const title = event ? event.title_en : 'Unknown Event';
         const noteStr = booking.customer_note ? `\\nNote: ${booking.customer_note}` : '';
+        const tokenStr = booking.token ? `\\nToken: ${booking.token}` : '';
 
         icsContent.push(
             'BEGIN:VEVENT',
@@ -65,7 +83,7 @@ export const downloadICS = (bookings: Booking[], events: Event[], eventSlug: str
             `DTSTART:${start}`,
             `DTEND:${end}`,
             `SUMMARY:${title} - ${booking.customer_name}`,
-            `DESCRIPTION:Client: ${booking.customer_name}\\nEmail: ${booking.customer_email}${noteStr}`,
+            `DESCRIPTION:Client: ${booking.customer_name}\\nEmail: ${booking.customer_email}${noteStr}${tokenStr}`,
             'END:VEVENT'
         );
     });
