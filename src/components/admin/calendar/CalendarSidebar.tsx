@@ -11,6 +11,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EventIcon from '@mui/icons-material/Event';
 import TableViewIcon from '@mui/icons-material/TableView';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { Badge } from '@mui/material';
 import TimezoneSelector from '@/components/booking/TimezoneSelector';
 import { Booking, Dictionary } from '@/types';
@@ -27,13 +28,14 @@ interface CalendarSidebarProps {
     onExportICS: () => void;
     onExportCSV: () => void;
     onExportExcel: () => void;
+    onExportBella: () => void;
     lang: string;
     dict: Dictionary;
 }
 
 export default function CalendarSidebar({
                                             selectedDate, onDateChange, currentTz, onTzChange, activeBookings,
-                                            loading, onRefresh, onOpenLabelManager, onExportICS, onExportCSV, onExportExcel,
+                                            loading, onRefresh, onOpenLabelManager, onExportICS, onExportCSV, onExportExcel, onExportBella,
                                             lang, dict
                                         }: CalendarSidebarProps) {
     const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
@@ -148,6 +150,9 @@ export default function CalendarSidebar({
                     </MenuItem>
                     <MenuItem onClick={() => { onExportExcel(); setExportMenuAnchor(null); }}>
                         <TableViewIcon fontSize="small" sx={{ mr: 1.5, color: 'success.main' }} /> Excel (.xlsx)
+                    </MenuItem>
+                    <MenuItem onClick={() => { onExportBella(); setExportMenuAnchor(null); }}>
+                        <ReceiptLongIcon fontSize="small" sx={{ mr: 1.5, color: 'warning.main' }} /> Bella Export (.xlsx)
                     </MenuItem>
                 </Menu>
             </Paper>

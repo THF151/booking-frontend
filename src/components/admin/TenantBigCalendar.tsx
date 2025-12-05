@@ -15,7 +15,7 @@ import LabelManagerDialog from '@/components/admin/LabelManagerDialog';
 
 import CalendarSidebar from './calendar/CalendarSidebar';
 import DailyBookingList from './calendar/DailyBookingList';
-import { downloadCSV, downloadExcel, downloadICS, generateExportData } from '@/lib/exportUtils';
+import { downloadCSV, downloadExcel, downloadICS, generateExportData, downloadBellaExcel } from '@/lib/exportUtils';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -77,6 +77,10 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
         downloadExcel(exportData);
     };
 
+    const handleExportBella = () => {
+        downloadBellaExcel(activeBookings, labels, currentTz);
+    };
+
     return (
         <Box sx={{
             display: 'flex',
@@ -104,6 +108,7 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
                     onExportICS={handleExportICS}
                     onExportCSV={handleExportCSV}
                     onExportExcel={handleExportExcel}
+                    onExportBella={handleExportBella}
                     lang={lang}
                     dict={dict}
                 />
