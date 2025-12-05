@@ -449,7 +449,7 @@ export default function DailyBookingList({
                             size="small"
                             fullWidth
                             value={tempToken}
-                            onChange={(e) => setTempToken(e.target.value.toUpperCase())}
+                            onChange={(e) => setTempToken(e.target.value)}
                             placeholder="Token"
                         />
                         <Tooltip title="Generate New">
