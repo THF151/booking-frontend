@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
 import dayjs, { Dayjs } from 'dayjs';
@@ -15,6 +13,7 @@ import LabelManagerDialog from '@/components/admin/LabelManagerDialog';
 
 import CalendarSidebar from './calendar/CalendarSidebar';
 import DailyBookingList from './calendar/DailyBookingList';
+import StampToolbar from './calendar/StampToolbar';
 import { downloadCSV, downloadExcel, downloadICS, generateExportData, downloadBellaExcel } from '@/lib/exportUtils';
 
 dayjs.extend(utc);
@@ -32,6 +31,7 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
     const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
     const [currentTz, setCurrentTz] = useState<string>(dayjs.tz.guess());
     const [labelManagerOpen, setLabelManagerOpen] = useState(false);
+    const [stampLabelId, setStampLabelId] = useState<string | null>(null);
 
     useEffect(() => {
         dayjs.locale(lang);
@@ -119,8 +119,17 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
                 minWidth: 0,
                 height: { xs: '600px', md: '100%' },
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                gap: 2
             }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 1 }}>
+                    <StampToolbar
+                        labels={labels}
+                        activeLabelId={stampLabelId}
+                        onToggle={setStampLabelId}
+                    />
+                </Box>
+
                 <DailyBookingList
                     selectedDate={selectedDate}
                     bookings={bookings}
@@ -130,6 +139,7 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
                     lang={lang}
                     dict={dict}
                     eventSlug={eventSlug}
+                    stampLabelId={stampLabelId}
                     onLabelUpdate={handleLabelUpdate}
                 />
             </Box>

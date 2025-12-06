@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
-    List, ListItem, ListItemText, IconButton, TextField, Stack, Box, Typography
+    List, ListItem, ListItemText, IconButton, TextField, Stack, Box, Typography,
+    ListItemSecondaryAction
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import { BookingLabel, Dictionary } from '@/types';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -19,20 +21,33 @@ interface Props {
 export default function LabelManagerDialog({ open, onClose, labels, dict }: Props) {
     const { tenantId } = useAuthStore();
     const queryClient = useQueryClient();
-    const [newName, setNewName] = useState('');
-    const [newColor, setNewColor] = useState('#2196f3');
-    const [newPayout, setNewPayout] = useState('');
+
+    const [editId, setEditId] = useState<string | null>(null);
+    const [name, setName] = useState('');
+    const [color, setColor] = useState('#2196f3');
+    const [payout, setPayout] = useState('');
 
     const createMutation = useMutation({
         mutationFn: () => api.post(`/${tenantId}/labels`, {
-            name: newName,
-            color: newColor,
-            payout: newPayout ? parseInt(newPayout, 10) : 0
+            name: name,
+            color: color,
+            payout: payout ? parseInt(payout, 10) : 0
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['labels', tenantId] });
-            setNewName('');
-            setNewPayout('');
+            resetForm();
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: () => api.put(`/${tenantId}/labels/${editId}`, {
+            name: name,
+            color: color,
+            payout: payout ? parseInt(payout, 10) : 0
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['labels', tenantId] });
+            resetForm();
         }
     });
 
@@ -41,57 +56,75 @@ export default function LabelManagerDialog({ open, onClose, labels, dict }: Prop
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['labels', tenantId] })
     });
 
+    const resetForm = () => {
+        setEditId(null);
+        setName('');
+        setColor('#2196f3');
+        setPayout('');
+    };
+
+    const handleEdit = (label: BookingLabel) => {
+        setEditId(label.id);
+        setName(label.name);
+        setColor(label.color);
+        setPayout(label.payout.toString());
+    };
+
+    const handleSave = () => {
+        if (editId) {
+            updateMutation.mutate();
+        } else {
+            createMutation.mutate();
+        }
+    };
+
     const t = dict.admin.labels || { title: "Manage Labels", create: "Add", name: "Name", color: "Color" };
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>{t.title}</DialogTitle>
+            <DialogTitle>{editId ? "Edit Label" : t.title}</DialogTitle>
             <DialogContent dividers>
                 <Box mb={3}>
                     <Stack direction="row" spacing={2} alignItems="center">
                         <TextField
                             size="small"
                             label={t.name}
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            fullWidth
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            sx={{ flex: 2 }}
                         />
                         <TextField
                             size="small"
-                            label="Payout (e.g. 15)"
-                            value={newPayout}
+                            label="Payout"
+                            value={payout}
                             type="number"
-                            onChange={(e) => setNewPayout(e.target.value)}
-                            sx={{ width: 150 }}
+                            onChange={(e) => setPayout(e.target.value)}
+                            sx={{ flex: 1, minWidth: 100 }}
                             InputProps={{
                                 endAdornment: <Typography color="text.secondary" ml={1}>€</Typography>
                             }}
                         />
                         <input
                             type="color"
-                            value={newColor}
-                            onChange={(e) => setNewColor(e.target.value)}
+                            value={color}
+                            onChange={(e) => setColor(e.target.value)}
                             style={{ width: 50, height: 40, padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
                         />
                         <Button
                             variant="contained"
-                            onClick={() => createMutation.mutate()}
-                            disabled={!newName}
+                            onClick={handleSave}
+                            disabled={!name || createMutation.isPending || updateMutation.isPending}
                         >
-                            {t.create}
+                            {editId ? "Update" : t.create}
                         </Button>
+                        {editId && (
+                            <Button onClick={resetForm}>Cancel</Button>
+                        )}
                     </Stack>
                 </Box>
                 <List>
                     {labels.map((label) => (
-                        <ListItem
-                            key={label.id}
-                            secondaryAction={
-                                <IconButton edge="end" onClick={() => deleteMutation.mutate(label.id)}>
-                                    <DeleteIcon />
-                                </IconButton>
-                            }
-                        >
+                        <ListItem key={label.id}>
                             <Box
                                 sx={{
                                     width: 16,
@@ -103,8 +136,16 @@ export default function LabelManagerDialog({ open, onClose, labels, dict }: Prop
                             />
                             <ListItemText
                                 primary={label.name}
-                                secondary={label.payout ? `Payout: ${label.payout}€` : null}
+                                secondary={label.payout !== 0 ? `Payout: ${label.payout}€` : "No Payout"}
                             />
+                            <ListItemSecondaryAction>
+                                <IconButton edge="end" onClick={() => handleEdit(label)} sx={{ mr: 1 }}>
+                                    <EditIcon />
+                                </IconButton>
+                                <IconButton edge="end" onClick={() => deleteMutation.mutate(label.id)}>
+                                    <DeleteIcon />
+                                </IconButton>
+                            </ListItemSecondaryAction>
                         </ListItem>
                     ))}
                 </List>

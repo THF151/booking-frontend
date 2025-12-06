@@ -13,6 +13,7 @@ export interface Booking {
     status: string;
     management_token: string;
     token?: string;
+    payout?: number;
     created_at: string;
 }
 

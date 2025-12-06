@@ -28,7 +28,10 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { Tooltip, Box, Typography, Menu, MenuItem, TextField, InputAdornment, Chip, Badge, Popover, Button, IconButton, Stack, Snackbar } from '@mui/material';
+import {
+    Tooltip, Box, Typography, Menu, MenuItem, TextField, InputAdornment, Chip,
+    Badge, Popover, Button, IconButton, Stack, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions
+} from '@mui/material';
 import { Booking, BookingLabel, MailLog } from '@/types';
 import LabelBadge from './LabelBadge';
 import AdHocEmailDialog from './AdHocEmailDialog';
@@ -212,6 +215,10 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
     const [tempToken, setTempToken] = useState('');
     const [snackMsg, setSnackMsg] = useState<string | null>(null);
 
+    // Custom Payout Dialog State
+    const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+    const [customPayout, setCustomPayout] = useState('');
+
     const { data: rows = [] } = useQuery({
         queryKey: ['bookings', tenantId, slug],
         queryFn: () => api.get<Booking[]>(`/${tenantId}/events/${slug}/bookings`),
@@ -248,12 +255,41 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
     const handleLabelSelect = async (labelId: string | null) => {
         if (activeBookingId) {
             try {
-                await api.put(`/${tenantId}/bookings/${activeBookingId}`, { label_id: labelId || "" });
+                await api.put(`/${tenantId}/bookings/${activeBookingId}`, { label_id: labelId || "", payout: null });
                 queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, slug] });
             } catch (e) { console.error(e); }
         }
         setLabelMenuAnchor(null);
         setActiveBookingId(null);
+    };
+
+    const handleCustomPayoutOpen = () => {
+        setLabelMenuAnchor(null);
+        setPayoutDialogOpen(true);
+        const booking = rows.find(b => b.id === activeBookingId);
+        if (booking) {
+            if (booking.payout !== null && booking.payout !== undefined) {
+                setCustomPayout(booking.payout.toString());
+            } else if (booking.label_id) {
+                const l = labels.find(lb => lb.id === booking.label_id);
+                setCustomPayout(l ? l.payout.toString() : '');
+            } else {
+                setCustomPayout('');
+            }
+        }
+    };
+
+    const handleCustomPayoutSave = async () => {
+        if (activeBookingId) {
+            try {
+                const val = customPayout ? parseInt(customPayout, 10) : null;
+                await api.put(`/${tenantId}/bookings/${activeBookingId}`, { payout: val });
+                queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, slug] });
+            } catch (e) { console.error(e); }
+        }
+        setPayoutDialogOpen(false);
+        setActiveBookingId(null);
+        setCustomPayout('');
     };
 
     // Token Handlers
@@ -336,22 +372,33 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
         },
         {
             field: 'label_id',
-            headerName: 'Label',
-            width: 120,
-            valueFormatter: (value) => {
-                if (!value) return '';
-                const label = labels.find(l => l.id === value);
-                return label ? label.name : '';
+            headerName: 'Label / Payout',
+            width: 160,
+            valueGetter: (val, row) => {
+                const label = labels.find(l => l.id === val);
+                const payout = row.payout !== null && row.payout !== undefined
+                    ? row.payout
+                    : (label ? label.payout : 0);
+                return { labelId: val, labelName: label?.name, payout };
             },
-            renderCell: (params) => (
-                <Box onClick={(e) => handleLabelClick(e, params.id as string)} sx={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
-                    {params.value ? (
-                        <LabelBadge labelId={params.value as string} labels={labels} />
-                    ) : (
-                        <Typography variant="caption" color="text.disabled">Add Label</Typography>
-                    )}
-                </Box>
-            )
+            renderCell: (params) => {
+                const { labelId, payout } = params.value;
+                const isCustom = params.row.payout !== null && params.row.payout !== undefined;
+                return (
+                    <Box onClick={(e) => handleLabelClick(e, params.id as string)} sx={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {labelId ? (
+                            <LabelBadge labelId={labelId} labels={labels} />
+                        ) : (
+                            <Typography variant="caption" color="text.disabled">No Label</Typography>
+                        )}
+                        {payout !== 0 && (
+                            <Typography variant="caption" color="success.main" fontWeight="bold" sx={{ textDecoration: isCustom ? 'underline' : 'none' }}>
+                                {payout}€
+                            </Typography>
+                        )}
+                    </Box>
+                );
+            }
         },
         {
             field: 'communication',
@@ -440,14 +487,38 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
                 open={Boolean(labelMenuAnchor)}
                 onClose={() => setLabelMenuAnchor(null)}
             >
-                <MenuItem onClick={() => handleLabelSelect(null)}><em>None</em></MenuItem>
+                <MenuItem onClick={() => handleLabelSelect(null)}>
+                    <Typography color="text.secondary" fontStyle="italic">No Label (Clear)</Typography>
+                </MenuItem>
                 {labels.map(l => (
                     <MenuItem key={l.id} onClick={() => handleLabelSelect(l.id)}>
                         <Box width={12} height={12} borderRadius="50%" bgcolor={l.color} mr={1} />
-                        {l.name}
+                        {l.name} ({l.payout}€)
                     </MenuItem>
                 ))}
+                <MenuItem onClick={handleCustomPayoutOpen}>
+                    <Typography color="primary" fontWeight="bold">Set Custom Payout...</Typography>
+                </MenuItem>
             </Menu>
+
+            <Dialog open={payoutDialogOpen} onClose={() => setPayoutDialogOpen(false)}>
+                <DialogTitle>Set Custom Payout</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Payout Amount (€)"
+                        type="number"
+                        fullWidth
+                        value={customPayout}
+                        onChange={(e) => setCustomPayout(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPayoutDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCustomPayoutSave} variant="contained">Save</Button>
+                </DialogActions>
+            </Dialog>
 
             <Popover
                 open={Boolean(tokenAnchorEl)}

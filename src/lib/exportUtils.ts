@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import * as XLSX from 'xlsx-js-style';
-import { Booking, BookingLabel, Event } from '@/types';
+import {Booking, BookingLabel, Event} from '@/types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -28,6 +28,14 @@ export const generateExportData = (
 ) => {
     return bookings.map(booking => {
         const label = labels.find(l => l.id === booking.label_id);
+
+        let payout = 0;
+        if (booking.payout !== null && booking.payout !== undefined) {
+            payout = booking.payout;
+        } else if (label) {
+            payout = label.payout;
+        }
+
         const start = dayjs(booking.start_time).tz(timezone);
         const end = dayjs(booking.end_time).tz(timezone);
 
@@ -53,7 +61,7 @@ export const generateExportData = (
             'End Date': end.format('YYYY-MM-DD'),
             'End Time': end.format('HH:mm'),
             'Label': label ? label.name : '',
-            'Payout': label ? label.payout : 0,
+            'Payout': payout,
             'Currency': 'EUR',
             'Note': booking.customer_note || '',
             'Created At': dayjs(booking.created_at).tz(timezone).format('YYYY-MM-DD HH:mm')
@@ -111,7 +119,14 @@ export const downloadBellaExcel = (bookings: Booking[], labels: BookingLabel[], 
 
     const data = bookings.map(b => {
         const label = labels.find(l => l.id === b.label_id);
-        const payout = label ? label.payout : 0;
+
+        let payout = 0;
+        if (b.payout !== null && b.payout !== undefined) {
+            payout = b.payout;
+        } else if (label) {
+            payout = label.payout;
+        }
+
         const dateStr = dayjs(b.start_time).tz(timezone).format('DD.MM.YYYY');
 
         return [
@@ -204,10 +219,9 @@ export const downloadExcel = (data: Record<string, unknown>[]) => {
 
     const worksheet = XLSX.utils.json_to_sheet(data);
 
-    const colWidths = Object.keys(data[0]).map(key => ({
+    worksheet['!cols'] = Object.keys(data[0]).map(key => ({
         wch: Math.max(key.length, ...data.map(row => (row[key] ? String(row[key]).length : 0))) + 2
     }));
-    worksheet['!cols'] = colWidths;
 
     const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
     worksheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };

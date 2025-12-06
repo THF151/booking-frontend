@@ -1,26 +1,22 @@
 import React, { useState } from 'react';
 import {
-    Box, Paper, Typography, Chip, Stack, IconButton, Menu, MenuItem, Tooltip, ToggleButton, ToggleButtonGroup,
-    Popover, TextField, Button, Snackbar
+    Box, Paper, Typography, Chip, Stack, ToggleButton, ToggleButtonGroup,
+    Popover, TextField, Button, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions,
+    Menu, MenuItem, Tooltip, IconButton
 } from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
 import EventIcon from '@mui/icons-material/Event';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import CommentIcon from '@mui/icons-material/Comment';
-import LabelIcon from '@mui/icons-material/Label';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewStreamIcon from '@mui/icons-material/ViewStream';
-import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import dayjs, { Dayjs } from 'dayjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dictionary, Booking, BookingLabel, Event } from '@/types';
-import LabelBadge from '@/components/admin/LabelBadge';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
+import BookingListItem from './BookingListItem';
 
 interface DailyBookingListProps {
     selectedDate: Dayjs | null;
@@ -31,6 +27,7 @@ interface DailyBookingListProps {
     lang: string;
     dict: Dictionary;
     eventSlug?: string;
+    stampLabelId: string | null;
     onLabelUpdate: (bookingId: string, labelId: string | null) => Promise<void>;
 }
 
@@ -51,7 +48,7 @@ const generateToken = (existingTokens: Set<string>): string => {
 };
 
 export default function DailyBookingList({
-                                             selectedDate, bookings, labels, events, currentTz, lang, dict, eventSlug, onLabelUpdate
+                                             selectedDate, bookings, labels, events, currentTz, lang, dict, eventSlug, stampLabelId
                                          }: DailyBookingListProps) {
     const { tenantId } = useAuthStore();
     const queryClient = useQueryClient();
@@ -66,6 +63,10 @@ export default function DailyBookingList({
     const [tempToken, setTempToken] = useState('');
     const [snackMsg, setSnackMsg] = useState<string | null>(null);
 
+    // Custom Payout State
+    const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+    const [customPayout, setCustomPayout] = useState('');
+
     const selectedDateStr = selectedDate?.format('YYYY-MM-DD');
 
     const selectedBookings = bookings
@@ -77,26 +78,74 @@ export default function DailyBookingList({
         return evt ? (lang === 'de' ? evt.title_de : evt.title_en) : dict.admin.calendar_tab.unknown_event;
     };
 
-    const handleLabelClick = (event: React.MouseEvent<HTMLElement>, id: string) => {
-        event.stopPropagation();
-        setLabelMenuAnchor(event.currentTarget);
-        setActiveBookingId(id);
+    const handleBookingAction = (e: React.MouseEvent, type: 'label' | 'token' | 'delete', booking: Booking) => {
+        e.stopPropagation();
+        if (type === 'label') {
+            setLabelMenuAnchor(e.currentTarget as HTMLElement);
+            setActiveBookingId(booking.id);
+        } else if (type === 'token') {
+            setTokenAnchorEl(e.currentTarget as HTMLElement);
+            setActiveTokenBooking(booking);
+            setTempToken(booking.token || '');
+        } else if (type === 'delete') {
+            // Placeholder, actual delete in admin table
+        }
+    };
+
+    const handleStamp = async (booking: Booking) => {
+        if (!stampLabelId) return;
+        try {
+            await api.put(`/${tenantId}/bookings/${booking.id}`, { label_id: stampLabelId, payout: null });
+            if (eventSlug) queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, eventSlug] });
+            else queryClient.invalidateQueries({ queryKey: ['bookings', tenantId] });
+            setSnackMsg('Label stamped!');
+        } catch (e) {
+            console.error(e);
+            setSnackMsg('Failed to stamp label');
+        }
     };
 
     const handleLabelSelect = (labelId: string | null) => {
         if (activeBookingId) {
-            onLabelUpdate(activeBookingId, labelId);
+            api.put(`/${tenantId}/bookings/${activeBookingId}`, { label_id: labelId || "", payout: null })
+                .then(() => {
+                    if (eventSlug) queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, eventSlug] });
+                    else queryClient.invalidateQueries({ queryKey: ['bookings', tenantId] });
+                })
+                .catch(console.error);
         }
         setLabelMenuAnchor(null);
         setActiveBookingId(null);
     };
 
-    // Token Handlers
-    const handleTokenClick = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
-        event.stopPropagation();
-        setTokenAnchorEl(event.currentTarget);
-        setActiveTokenBooking(booking);
-        setTempToken(booking.token || '');
+    const handleCustomPayoutOpen = () => {
+        setLabelMenuAnchor(null);
+        setPayoutDialogOpen(true);
+        const booking = bookings.find(b => b.id === activeBookingId);
+        if (booking) {
+            if (booking.payout !== null && booking.payout !== undefined) {
+                setCustomPayout(booking.payout.toString());
+            } else if (booking.label_id) {
+                const l = labels.find(lb => lb.id === booking.label_id);
+                setCustomPayout(l ? l.payout.toString() : '');
+            } else {
+                setCustomPayout('');
+            }
+        }
+    };
+
+    const handleCustomPayoutSave = async () => {
+        if (activeBookingId) {
+            try {
+                const val = customPayout ? parseInt(customPayout, 10) : null;
+                await api.put(`/${tenantId}/bookings/${activeBookingId}`, { payout: val });
+                if (eventSlug) queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, eventSlug] });
+                else queryClient.invalidateQueries({ queryKey: ['bookings', tenantId] });
+            } catch (e) { console.error(e); }
+        }
+        setPayoutDialogOpen(false);
+        setActiveBookingId(null);
+        setCustomPayout('');
     };
 
     const handleTokenClose = () => {
@@ -109,13 +158,8 @@ export default function DailyBookingList({
         if (!activeTokenBooking || !tenantId) return;
         try {
             await api.put(`/${tenantId}/bookings/${activeTokenBooking.id}`, { token: tempToken || "" });
-
-            // Invalidate queries to refresh data
-            if (eventSlug) {
-                queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, eventSlug] });
-            }
-            queryClient.invalidateQueries({ queryKey: ['bookings', tenantId] });
-
+            if (eventSlug) queryClient.invalidateQueries({ queryKey: ['bookings', tenantId, eventSlug] });
+            else queryClient.invalidateQueries({ queryKey: ['bookings', tenantId] });
             handleTokenClose();
             setSnackMsg('Token updated');
         } catch (e) {
@@ -141,17 +185,11 @@ export default function DailyBookingList({
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
-            transition: {
-                staggerChildren: 0.05
-            }
+            transition: { staggerChildren: 0.05 }
         }
     };
-
-    const itemVariants = {
-        hidden: { y: 10, opacity: 0 },
-        show: { y: 0, opacity: 1 }
-    };
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    labels.find(l => l.id === stampLabelId)?.color;
     return (
         <Paper
             elevation={0}
@@ -225,185 +263,20 @@ export default function DailyBookingList({
                         sx={{ display: 'flex', flexDirection: 'column', gap: viewMode === 'comfortable' ? 2 : 0 }}
                     >
                         <AnimatePresence mode="wait">
-                            {selectedBookings.map((booking) => {
-                                const start = dayjs(booking.start_time).tz(currentTz);
-                                const end = dayjs(booking.end_time).tz(currentTz);
-                                const isCancelled = booking.status === 'CANCELLED';
-                                const label = labels.find(l => l.id === booking.label_id);
-
-                                if (viewMode === 'compact') {
-                                    return (
-                                        <Box
-                                            component={motion.div}
-                                            variants={itemVariants}
-                                            key={booking.id}
-                                            sx={{
-                                                display: 'grid',
-                                                gridTemplateColumns: '80px 1fr auto auto auto',
-                                                alignItems: 'center',
-                                                gap: 2,
-                                                p: 1.5,
-                                                borderBottom: '1px solid',
-                                                borderColor: 'divider',
-                                                opacity: isCancelled ? 0.5 : 1,
-                                                bgcolor: 'background.paper',
-                                                '&:hover': { bgcolor: 'action.hover' },
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                        >
-                                            <Typography variant="body2" fontFamily="monospace" fontWeight="600" color="text.secondary">
-                                                {start.format('HH:mm')}
-                                            </Typography>
-
-                                            <Box>
-                                                <Stack direction="row" spacing={1} alignItems="center">
-                                                    <Typography variant="body2" fontWeight="600" sx={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>
-                                                        {booking.customer_name}
-                                                    </Typography>
-                                                    {isCancelled && <Chip label="CANCELLED" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />}
-                                                </Stack>
-                                                <Typography variant="caption" color="text.secondary" display="block">
-                                                    {getEventTitle(booking.event_id)}
-                                                </Typography>
-                                            </Box>
-
-                                            <Box
-                                                onClick={(e) => handleTokenClick(e, booking)}
-                                                sx={{
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    bgcolor: booking.token ? 'action.selected' : 'transparent',
-                                                    px: 1, py: 0.5, borderRadius: 1,
-                                                    '&:hover': { bgcolor: 'action.hover' }
-                                                }}
-                                            >
-                                                {booking.token ? (
-                                                    <Typography variant="caption" fontFamily="monospace" fontWeight="bold" color="primary.main">
-                                                        {booking.token}
-                                                    </Typography>
-                                                ) : (
-                                                    <ConfirmationNumberIcon fontSize="small" color="action" sx={{ fontSize: 18, opacity: 0.5 }} />
-                                                )}
-                                            </Box>
-
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                                {booking.customer_note && (
-                                                    <Tooltip title={booking.customer_note}>
-                                                        <CommentIcon fontSize="small" color="action" sx={{ fontSize: 16 }} />
-                                                    </Tooltip>
-                                                )}
-                                            </Box>
-
-                                            <Box onClick={(e) => handleLabelClick(e, booking.id)} sx={{ cursor: 'pointer', minWidth: 80, display: 'flex', justifyContent: 'flex-end' }}>
-                                                {booking.label_id ? (
-                                                    <LabelBadge labelId={booking.label_id} labels={labels} size="small" />
-                                                ) : (
-                                                    <LabelIcon fontSize="small" color="action" sx={{ opacity: 0.3, '&:hover': { opacity: 1 } }} />
-                                                )}
-                                            </Box>
-                                        </Box>
-                                    );
-                                }
-
-                                return (
-                                    <Paper
-                                        component={motion.div}
-                                        variants={itemVariants}
-                                        key={booking.id}
-                                        elevation={0}
-                                        variant="outlined"
-                                        sx={{
-                                            p: 2,
-                                            borderLeft: '4px solid',
-                                            borderLeftColor: isCancelled ? 'error.main' : 'primary.main',
-                                            opacity: isCancelled ? 0.7 : 1,
-                                            '&:hover': {
-                                                borderColor: 'primary.main',
-                                                borderLeftColor: isCancelled ? 'error.main' : 'primary.main',
-                                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                                                transform: 'translateY(-1px)'
-                                            },
-                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                                        }}
-                                    >
-                                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
-                                            <Box>
-                                                <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
-                                                    <Typography variant="h6" fontSize="1.1rem" fontWeight="700" sx={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>
-                                                        {booking.customer_name}
-                                                    </Typography>
-                                                    {isCancelled && <Chip label="CANCELLED" size="small" color="error" variant="filled" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 'bold' }} />}
-                                                    {booking.label_id && (
-                                                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ bgcolor: 'action.hover', px: 1, py: 0.5, borderRadius: 1 }}>
-                                                            <LabelBadge labelId={booking.label_id} labels={labels} />
-                                                            {label?.payout !== undefined && label.payout !== 0 && (
-                                                                <Typography variant="caption" color="success.main" fontWeight="800">
-                                                                    +{label.payout}€
-                                                                </Typography>
-                                                            )}
-                                                        </Stack>
-                                                    )}
-                                                </Stack>
-
-                                                <Stack spacing={0.5}>
-                                                    <Box display="flex" alignItems="center" gap={1} color="text.secondary">
-                                                        <EventIcon sx={{ fontSize: 16 }} />
-                                                        <Typography variant="body2" fontWeight="500">{getEventTitle(booking.event_id)}</Typography>
-                                                    </Box>
-                                                    <Box display="flex" alignItems="center" gap={1} color="text.secondary">
-                                                        <PersonIcon sx={{ fontSize: 16 }} />
-                                                        <Typography variant="body2">{booking.customer_email}</Typography>
-                                                    </Box>
-                                                    <Box
-                                                        display="flex"
-                                                        alignItems="center"
-                                                        gap={1}
-                                                        color="text.secondary"
-                                                        onClick={(e) => handleTokenClick(e, booking)}
-                                                        sx={{ cursor: 'pointer', width: 'fit-content', '&:hover': { color: 'primary.main' } }}
-                                                    >
-                                                        <ConfirmationNumberIcon sx={{ fontSize: 16 }} />
-                                                        <Typography variant="body2" fontFamily="monospace">
-                                                            {booking.token || <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Set Token</span>}
-                                                        </Typography>
-                                                    </Box>
-                                                </Stack>
-
-                                                {booking.customer_note && (
-                                                    <Box mt={2} sx={{ bgcolor: 'action.hover', p: 1.5, borderRadius: 2, display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-                                                        <CommentIcon fontSize="small" sx={{ color: 'text.secondary', mt: 0.3 }} />
-                                                        <Typography variant="body2" color="text.primary" sx={{ fontStyle: 'italic', fontSize: '0.9rem' }}>
-                                                            &quot;{booking.customer_note}&quot;
-                                                        </Typography>
-                                                    </Box>
-                                                )}
-                                            </Box>
-
-                                            <Stack alignItems="flex-end" spacing={1}>
-                                                <Chip
-                                                    icon={<AccessTimeIcon />}
-                                                    label={`${start.format('HH:mm')} - ${end.format('HH:mm')}`}
-                                                    color="primary"
-                                                    variant="outlined"
-                                                    sx={{ fontWeight: 600, bgcolor: 'background.paper' }}
-                                                />
-
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={(e) => handleLabelClick(e, booking.id)}
-                                                    sx={{
-                                                        bgcolor: 'action.hover',
-                                                        '&:hover': { bgcolor: 'action.selected' }
-                                                    }}
-                                                >
-                                                    <LabelIcon fontSize="small" />
-                                                </IconButton>
-                                            </Stack>
-                                        </Stack>
-                                    </Paper>
-                                );
-                            })}
+                            {selectedBookings.map((booking) => (
+                                <BookingListItem
+                                    key={booking.id}
+                                    booking={booking}
+                                    start={dayjs(booking.start_time).tz(currentTz)}
+                                    end={dayjs(booking.end_time).tz(currentTz)}
+                                    eventTitle={getEventTitle(booking.event_id)}
+                                    labels={labels}
+                                    viewMode={viewMode}
+                                    isStampMode={!!stampLabelId}
+                                    onStamp={handleStamp}
+                                    onAction={handleBookingAction}
+                                />
+                            ))}
                         </AnimatePresence>
                     </Box>
                 )}
@@ -419,7 +292,7 @@ export default function DailyBookingList({
                 }}
             >
                 <MenuItem onClick={() => handleLabelSelect(null)}>
-                    <Typography color="text.secondary" fontStyle="italic">No Label</Typography>
+                    <Typography color="text.secondary" fontStyle="italic">No Label (Clear)</Typography>
                 </MenuItem>
                 {labels.map(l => (
                     <MenuItem key={l.id} onClick={() => handleLabelSelect(l.id)} sx={{ gap: 1.5 }}>
@@ -432,9 +305,30 @@ export default function DailyBookingList({
                         )}
                     </MenuItem>
                 ))}
+                <MenuItem onClick={handleCustomPayoutOpen}>
+                    <Typography color="primary" fontWeight="bold">Set Custom Payout...</Typography>
+                </MenuItem>
             </Menu>
 
-            {/* Token Popover */}
+            <Dialog open={payoutDialogOpen} onClose={() => setPayoutDialogOpen(false)}>
+                <DialogTitle>Set Custom Payout</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Payout Amount (€)"
+                        type="number"
+                        fullWidth
+                        value={customPayout}
+                        onChange={(e) => setCustomPayout(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPayoutDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCustomPayoutSave} variant="contained">Save</Button>
+                </DialogActions>
+            </Dialog>
+
             <Popover
                 open={Boolean(tokenAnchorEl)}
                 anchorEl={tokenAnchorEl}
