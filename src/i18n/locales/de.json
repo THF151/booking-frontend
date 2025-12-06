@@ -16,6 +16,17 @@
     "saved": "Gespeichert",
     "unsaved": "Ungespeichert"
   },
+  "ai_dialog": {
+    "title": "KI Assistent",
+    "description": "Beschreiben Sie, was Sie ändern oder generieren möchten. Die KI kennt die verfügbaren Variablen:",
+    "prompt_label": "Anweisungen",
+    "prompt_placeholder": "z.B. 'Schreibe dies höflicher', oder 'Ändere die Farbe des Einladungsbuttons.'",
+    "generating": "Generiere Inhalte...",
+    "preview_title": "Vorschau:",
+    "apply_btn": "Änderungen anwenden",
+    "generate_btn": "Generieren",
+    "error_title": "Generierung fehlgeschlagen"
+  },
   "booking": {
     "available_times": "Verfügbare Zeiten",
     "calendar_header": "Datum auswählen",

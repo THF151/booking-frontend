@@ -32,7 +32,7 @@ import {
     Tooltip, Box, Typography, Menu, MenuItem, TextField, InputAdornment, Chip,
     Badge, Popover, Button, IconButton, Stack, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
-import { Booking, BookingLabel, MailLog } from '@/types';
+import { Booking, BookingLabel, MailLog, Dictionary } from '@/types';
 import LabelBadge from './LabelBadge';
 import AdHocEmailDialog from './AdHocEmailDialog';
 
@@ -42,6 +42,7 @@ dayjs.extend(timezone);
 interface AdminBookingTableProps {
     slug: string;
     eventTimezone?: string;
+    dict: Dictionary;
 }
 
 type OwnerState = {
@@ -199,7 +200,7 @@ function CustomToolbar() {
     );
 }
 
-export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingTableProps) {
+export default function AdminBookingTable({ slug, eventTimezone, dict }: AdminBookingTableProps) {
     const { tenantId } = useAuthStore();
     const queryClient = useQueryClient();
     const tz = eventTimezone || 'UTC';
@@ -614,6 +615,7 @@ export default function AdminBookingTable({ slug, eventTimezone }: AdminBookingT
                     recipientName={emailDialog.booking.customer_name}
                     targetType="BOOKING"
                     eventId={emailDialog.booking.event_id}
+                    dict={dict}
                 />
             )}
         </Box>

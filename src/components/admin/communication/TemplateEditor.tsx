@@ -193,10 +193,12 @@ export default function TemplateEditor({ template, dict }: Props) {
                             onClick={() => setAiDialogOpen(true)}
                             size="small"
                             sx={{
-                                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                background: 'linear-gradient(45deg, #6366f1 30%, #8b5cf6 90%)',
                                 color: 'white',
+                                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                                 '&:hover': {
-                                    background: 'linear-gradient(45deg, #1976D2 30%, #00BCD4 90%)',
+                                    background: 'linear-gradient(45deg, #4f46e5 30%, #7c3aed 90%)',
+                                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)',
                                 }
                             }}
                         >
@@ -319,6 +321,7 @@ export default function TemplateEditor({ template, dict }: Props) {
                 currentContent={templateType === 'mjml' ? mjmlContent : htmlContent}
                 contextType="TEMPLATE"
                 variables={placeholders.map(p => p.key)}
+                dict={dict}
             />
 
             <Snackbar

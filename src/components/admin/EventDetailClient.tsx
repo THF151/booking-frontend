@@ -317,7 +317,7 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
 
                     {tab === 1 && (
                         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', height: '70vh' }}>
-                            <AdminBookingTable slug={slug} eventTimezone={event.timezone} />
+                            <AdminBookingTable slug={slug} eventTimezone={event.timezone} dict={dict} />
                         </Paper>
                     )}
 

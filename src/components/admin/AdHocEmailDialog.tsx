@@ -8,7 +8,7 @@ import {
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
-import { EmailTemplate, TemplatePlaceholder } from '@/types';
+import { EmailTemplate, TemplatePlaceholder, Dictionary } from '@/types';
 import CodeIcon from '@mui/icons-material/Code';
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
 import SendIcon from '@mui/icons-material/Send';
@@ -26,9 +26,10 @@ interface Props {
     recipientName?: string;
     targetType: 'BOOKING' | 'INVITEE';
     eventId?: string;
+    dict: Dictionary;
 }
 
-export default function AdHocEmailDialog({ open, onClose, recipientEmail, recipientName, eventId }: Props) {
+export default function AdHocEmailDialog({ open, onClose, recipientEmail, recipientName, eventId, dict }: Props) {
     const { tenantId } = useAuthStore();
 
     const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -109,9 +110,13 @@ export default function AdHocEmailDialog({ open, onClose, recipientEmail, recipi
                             onClick={() => setAiDialogOpen(true)}
                             startIcon={<AutoAwesomeIcon />}
                             sx={{
-                                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                                background: 'linear-gradient(45deg, #6366f1 30%, #8b5cf6 90%)',
                                 color: 'white',
-                                '&:hover': { background: 'linear-gradient(45deg, #1976D2 30%, #00BCD4 90%)' }
+                                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+                                '&:hover': {
+                                    background: 'linear-gradient(45deg, #4f46e5 30%, #7c3aed 90%)',
+                                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)',
+                                }
                             }}
                         >
                             AI Assist
@@ -152,14 +157,14 @@ export default function AdHocEmailDialog({ open, onClose, recipientEmail, recipi
                 </Box>
             </DialogContent>
             <DialogActions sx={{ p: 2 }}>
-                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={onClose}>{dict.common.cancel}</Button>
                 <Button
                     variant="contained"
                     startIcon={sendMutation.isPending ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
                     onClick={() => sendMutation.mutate()}
                     disabled={sendMutation.isPending}
                 >
-                    Send
+                    {dict.admin.communication.send_btn}
                 </Button>
             </DialogActions>
 
@@ -170,6 +175,7 @@ export default function AdHocEmailDialog({ open, onClose, recipientEmail, recipi
                 currentContent={body}
                 contextType="ADHOC"
                 variables={placeholders.map(p => p.key)}
+                dict={dict}
             />
 
             <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)}>

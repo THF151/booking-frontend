@@ -227,6 +227,7 @@ export default function AdminInviteeTable({ slug, dict, lang }: AdminInviteeTabl
                     recipientEmail={emailDialog.invitee.email!}
                     targetType="INVITEE"
                     eventId={emailDialog.invitee.event_id}
+                    dict={dict}
                 />
             )}
         </Box>

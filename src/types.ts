@@ -168,6 +168,17 @@ export interface Dictionary {
         saved: string;
         unsaved: string;
     };
+    ai_dialog: {
+        title: string;
+        description: string;
+        prompt_label: string;
+        prompt_placeholder: string;
+        generating: string;
+        preview_title: string;
+        apply_btn: string;
+        generate_btn: string;
+        error_title: string;
+    };
     admin: {
         login_title: string;
         register_title: string;

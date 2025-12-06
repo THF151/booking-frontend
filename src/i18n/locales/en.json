@@ -16,6 +16,17 @@
     "saved": "Saved",
     "unsaved": "Unsaved"
   },
+  "ai_dialog": {
+    "title": "AI Assistant",
+    "description": "Describe what you want to change or generate. The AI is aware of the available variables:",
+    "prompt_label": "Instructions",
+    "prompt_placeholder": "e.g., 'Rewrite this to be more polite', or 'Change the buttons color to blue'",
+    "generating": "Generating content...",
+    "preview_title": "Preview:",
+    "apply_btn": "Apply Changes",
+    "generate_btn": "Generate",
+    "error_title": "Generation Failed"
+  },
   "booking": {
     "available_times": "Available times",
     "calendar_header": "Select a Date",

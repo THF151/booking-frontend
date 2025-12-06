@@ -15,7 +15,7 @@ import DesktopMacIcon from '@mui/icons-material/DesktopMac';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckIcon from '@mui/icons-material/Check';
-import { TemplatePlaceholder, Event } from '@/types';
+import { TemplatePlaceholder, Event, Tenant } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -36,7 +36,7 @@ interface PreviewPanelProps {
 }
 
 function PreviewPanel({ templateContent, templateType, subjectTemplate, placeholders, sampleContext, onContextChange }: PreviewPanelProps) {
-    const { tenantId } = useAuthStore();
+    const { tenantId, tenantLogo, tenantName } = useAuthStore();
     const [html, setHtml] = useState('');
     const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
     const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -44,6 +44,12 @@ function PreviewPanel({ templateContent, templateType, subjectTemplate, placehol
     const { data: events = [] } = useQuery({
         queryKey: ['events', tenantId],
         queryFn: () => api.get<Event[]>(`/${tenantId}/events`),
+        enabled: !!tenantId
+    });
+
+    const { data: tenant } = useQuery({
+        queryKey: ['tenant', tenantId],
+        queryFn: () => api.get<Tenant>(`/tenants`),
         enabled: !!tenantId
     });
 
@@ -63,15 +69,33 @@ function PreviewPanel({ templateContent, templateType, subjectTemplate, placehol
                 newContext['location'] = event.location;
                 newContext['duration'] = event.duration_min.toString();
                 newContext['timezone'] = event.timezone;
+                newContext['payout'] = event.payout;
+                newContext['event_description'] = event.desc_en;
+
+                // Ensure tenant details are populated
+                const logo = tenant?.logo_url || tenantLogo || 'https://via.placeholder.com/150';
+                const name = tenant?.name || tenantName || 'Tenant Name';
+
+                newContext['logo_url'] = logo;
+                newContext['tenant_name'] = name;
 
                 const nextSlot = dayjs().add(2, 'day').hour(10).minute(0).second(0);
                 newContext['start_time'] = nextSlot.format('YYYY-MM-DD HH:mm');
 
                 onContextChange(newContext);
             }
+        } else {
+            const newContext = { ...sampleContext };
+            const logo = tenant?.logo_url || tenantLogo || 'https://via.placeholder.com/150';
+            const name = tenant?.name || tenantName || 'Tenant Name';
+
+            if (!newContext['logo_url']) newContext['logo_url'] = logo;
+            if (!newContext['tenant_name']) newContext['tenant_name'] = name;
+
+            onContextChange(newContext);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedEventId, events]);
+    }, [selectedEventId, events, tenant, tenantLogo, tenantName]);
 
     const usedVariables = useMemo(() => {
         const combined = subjectTemplate + templateContent;
@@ -81,6 +105,10 @@ function PreviewPanel({ templateContent, templateType, subjectTemplate, placehol
                 used.add(p.key);
             }
         });
+        // Check for specific commonly used variables if not in placeholders list explicitly but used in template
+        if (combined.includes('{{logo_url}}') || combined.includes('{{ logo_url }}')) used.add('logo_url');
+        if (combined.includes('{{tenant_name}}') || combined.includes('{{ tenant_name }}')) used.add('tenant_name');
+
         return used;
     }, [subjectTemplate, templateContent, placeholders]);
 
@@ -192,7 +220,38 @@ function PreviewPanel({ templateContent, templateType, subjectTemplate, placehol
                             </Tooltip>
                         );
                     })}
-                    {placeholders.length === 0 && <Typography variant="caption" color="text.secondary">No variables detected in template.</Typography>}
+                    {!placeholders.some(p => p.key === 'logo_url') && (
+                        <TextField
+                            label="logo_url"
+                            value={sampleContext['logo_url'] || ''}
+                            onChange={(e) => onContextChange({ ...sampleContext, 'logo_url': e.target.value })}
+                            size="small"
+                            color={usedVariables.has('logo_url') ? 'success' : 'warning'}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        {usedVariables.has('logo_url') ? <CheckIcon color="success" fontSize="small" /> : <WarningIcon color="warning" fontSize="small" />}
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
+                    )}
+                    {!placeholders.some(p => p.key === 'tenant_name') && (
+                        <TextField
+                            label="tenant_name"
+                            value={sampleContext['tenant_name'] || ''}
+                            onChange={(e) => onContextChange({ ...sampleContext, 'tenant_name': e.target.value })}
+                            size="small"
+                            color={usedVariables.has('tenant_name') ? 'success' : 'warning'}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        {usedVariables.has('tenant_name') ? <CheckIcon color="success" fontSize="small" /> : <WarningIcon color="warning" fontSize="small" />}
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
+                    )}
                 </Stack>
             </Box>
 
