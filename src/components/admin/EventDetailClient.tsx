@@ -46,7 +46,6 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
     const searchParams = useSearchParams();
     const t = dict.admin.event_detail;
 
-    // --- Tab State Management ---
     const tabMap = ['overview', 'bookings', 'invitees'];
     const initialTab = tabMap.indexOf(searchParams.get('view') || 'overview');
     const [tab, setTab] = useState(initialTab !== -1 ? initialTab : 0);
@@ -151,7 +150,6 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
 
             <Box sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', pt: 3, pb: 0 }}>
                 <Container maxWidth="xl">
-                    {/* Breadcrumbs */}
                     <Breadcrumbs sx={{ mb: 3 }}>
                         <Link href={`/${lang}/admin/dashboard`} passHref style={{ display: 'flex', alignItems: 'center', color: 'inherit', textDecoration: 'none' }}>
                             <DashboardIcon sx={{ mr: 0.5 }} fontSize="inherit" />
@@ -162,7 +160,6 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
                         </Typography>
                     </Breadcrumbs>
 
-                    {/* Header Actions */}
                     <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'flex-start' }} gap={3} mb={4}>
                         <Box>
                             <Typography variant="h4" fontWeight="800" sx={{ mb: 1 }}>
@@ -202,12 +199,14 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
                         </Stack>
                     </Box>
 
-                    {/* Tabs */}
                     <Tabs
                         value={tab}
                         onChange={handleTabChange}
                         textColor="primary"
                         indicatorColor="primary"
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        allowScrollButtonsMobile
                         sx={{
                             '& .MuiTab-root': {
                                 textTransform: 'none',
@@ -240,11 +239,11 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
                             <Grid container spacing={3}>
                                 <Grid size={{ xs: 12, lg: 4 }}>
                                     <Paper variant="outlined" sx={{ p: 3, height: '100%', borderRadius: 3 }}>
-                                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                                        <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} mb={2}>
                                             <Typography variant="h6" fontWeight="bold">{t.calendar.title}</Typography>
-                                            <Stack direction="row" spacing={1}>
-                                                <Chip size="small" label="Blocked" color="error" variant="outlined" icon={<BlockIcon />} />
-                                                <Chip size="small" label="Modified" color="warning" variant="outlined" icon={<EditLocationIcon />} />
+                                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                                <Chip size="small" label="Blocked" color="error" variant="outlined" icon={<BlockIcon />} sx={{ mt: { xs: 1, sm: 0 } }} />
+                                                <Chip size="small" label="Modified" color="warning" variant="outlined" icon={<EditLocationIcon />} sx={{ mt: { xs: 1, sm: 0 } }} />
                                             </Stack>
                                         </Box>
                                         <DateCalendar
@@ -263,7 +262,6 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
 
                                 <Grid size={{ xs: 12, lg: 8 }}>
                                     <Stack spacing={3}>
-                                        {/* Quick Stats */}
                                         <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
                                             <Typography variant="h6" fontWeight="bold" mb={3}>{t.stats.title}</Typography>
                                             <Grid container spacing={4}>
@@ -303,7 +301,6 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
                                             </Grid>
                                         </Paper>
 
-                                        {/* Big Calendar Preview */}
                                         <Box>
                                             <Typography variant="h6" fontWeight="bold" mb={2}>
                                                 {lang === 'de' ? 'Kalender Übersicht' : 'Event Calendar'}
@@ -331,8 +328,6 @@ export default function EventDetailClient({ lang, slug, dict }: { lang: string, 
                     )}
                 </Container>
             </Box>
-
-            {/* --- Dialogs --- */}
 
             {overrideOpen && !isManual && (
                 <OverrideDialog

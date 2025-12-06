@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import {
     AppBar, Toolbar, Box, Typography, Button, Tooltip, IconButton,
-    Avatar, Badge, Select, MenuItem, useColorScheme, SelectChangeEvent, Divider
+    Avatar, Badge, Select, MenuItem, useColorScheme, SelectChangeEvent, Divider,
+    Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TaskIcon from '@mui/icons-material/Task';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import MenuIcon from '@mui/icons-material/Menu';
 import Link from 'next/link';
 import JobMonitorDialog from '@/components/admin/JobMonitorDialog';
 import { useAuthStore } from '@/store/authStore';
@@ -24,6 +26,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { mode, setMode } = useColorScheme();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const handleLogout = async () => {
         try { await api.post('/auth/logout', {}); } catch {}
@@ -52,23 +55,23 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                     zIndex: 1100
                 }}
             >
-                <Toolbar sx={{ minHeight: 64 }}>
+                <Toolbar sx={{ minHeight: 64, px: { xs: 2, sm: 3 } }}>
                     {/* Left: Logo & Tenant Info */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-                        <Link href={`/${lang}/admin/dashboard`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', color: 'inherit' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflow: 'hidden' }}>
+                        <Link href={`/${lang}/admin/dashboard`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', color: 'inherit', maxWidth: '100%' }}>
                             <Avatar
                                 src={tenantLogo || "/logo-placeholder.png"}
                                 variant="rounded"
-                                sx={{ mr: 2, width: 32, height: 32, bgcolor: 'primary.main' }}
+                                sx={{ mr: 2, width: 32, height: 32, bgcolor: 'primary.main', flexShrink: 0 }}
                             >
                                 {tenantName ? tenantName.charAt(0).toUpperCase() : 'A'}
                             </Avatar>
-                            <Box>
-                                <Typography variant="subtitle1" sx={{ fontWeight: '700', lineHeight: 1.1, color: 'text.primary' }}>
+                            <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: '700', lineHeight: 1.1, color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {tenantName || dict.admin.dashboard}
                                 </Typography>
                                 <Tooltip title="Tenant ID">
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', opacity: 0.8 }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', opacity: 0.8, display: { xs: 'none', sm: 'block' } }}>
                                         {tenantId?.substring(0, 8)}...
                                     </Typography>
                                 </Tooltip>
@@ -76,7 +79,8 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                         </Link>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    {/* Desktop Menu */}
+                    <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}>
                         <Select
                             value={lang}
                             onChange={handleLangChange}
@@ -127,8 +131,77 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                             {dict.admin.logout}
                         </Button>
                     </Box>
+
+                    <IconButton
+                        sx={{ display: { xs: 'flex', md: 'none' }, ml: 1 }}
+                        onClick={() => setMobileMenuOpen(true)}
+                    >
+                        <MenuIcon />
+                    </IconButton>
                 </Toolbar>
             </AppBar>
+
+            {/* Mobile Drawer */}
+            <Drawer
+                anchor="right"
+                open={mobileMenuOpen}
+                onClose={() => setMobileMenuOpen(false)}
+            >
+                <Box sx={{ width: 250, pt: 2 }} role="presentation">
+                    <List>
+                        <ListItem>
+                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, px: 2 }}>
+                                Language
+                            </Typography>
+                            <Select
+                                value={lang}
+                                onChange={(e) => { handleLangChange(e); setMobileMenuOpen(false); }}
+                                size="small"
+                                fullWidth
+                                sx={{ mx: 2 }}
+                            >
+                                <MenuItem value="en">🇺🇸 English</MenuItem>
+                                <MenuItem value="de">🇩🇪 Deutsch</MenuItem>
+                            </Select>
+                        </ListItem>
+
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={() => { setMode(mode === 'dark' ? 'light' : 'dark'); setMobileMenuOpen(false); }}>
+                                <ListItemIcon>
+                                    {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+                                </ListItemIcon>
+                                <ListItemText primary={mode === 'dark' ? "Light Mode" : "Dark Mode"} />
+                            </ListItemButton>
+                        </ListItem>
+
+                        <Divider sx={{ my: 1 }} />
+
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={() => { setJobMonitorOpen(true); setMobileMenuOpen(false); }}>
+                                <ListItemIcon><TaskIcon /></ListItemIcon>
+                                <ListItemText primary={dict.admin.jobs.title} />
+                            </ListItemButton>
+                        </ListItem>
+
+                        <Link href={`/${lang}/admin/settings`} passHref style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <ListItem disablePadding>
+                                <ListItemButton onClick={() => setMobileMenuOpen(false)}>
+                                    <ListItemIcon><SettingsIcon /></ListItemIcon>
+                                    <ListItemText primary="Settings" />
+                                </ListItemButton>
+                            </ListItem>
+                        </Link>
+
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>
+                                <ListItemIcon><LogoutIcon color="error" /></ListItemIcon>
+                                <ListItemText primary={dict.admin.logout} sx={{ color: 'error.main' }} />
+                            </ListItemButton>
+                        </ListItem>
+                    </List>
+                </Box>
+            </Drawer>
+
             <JobMonitorDialog open={jobMonitorOpen} onClose={() => setJobMonitorOpen(false)} dict={dict} />
         </>
     );
