@@ -68,6 +68,57 @@
     "logout": "Abmelden",
     "global_calendar_label": "Gesamtkalender",
     "global_calendar_desc": "Übersicht aller Buchungen über alle Veranstaltungen hinweg.",
+    "header": {
+      "language": "Sprache",
+      "light_mode": "Heller Modus",
+      "dark_mode": "Dunkler Modus",
+      "settings": "Einstellungen",
+      "tenant_id": "Mandanten-ID",
+      "toggle_theme": "Design wechseln"
+    },
+    "dashboard_page": {
+      "welcome": "Willkommen zurück. Hier ist der heutige Überblick.",
+      "stats": {
+        "today": "Buchungen heute",
+        "active": "Aktive Buchungen",
+        "events": "Aktive Events"
+      },
+      "search_placeholder": "Events suchen...",
+      "active": "Aktiv",
+      "past": "Vergangen",
+      "no_active": "Keine aktiven Events gefunden.",
+      "show_past": "Vergangene Events anzeigen",
+      "hide_past": "Vergangene Events ausblenden",
+      "ended": "Beendet"
+    },
+    "settings": {
+      "title": "Einstellungen & Team",
+      "general_title": "Allgemeine Einstellungen",
+      "tenant_id": "Mandanten-ID",
+      "login_url": "Team-Login-URL",
+      "login_url_helper": "Teilen Sie diesen Link mit Ihren Teammitgliedern für direkten Login.",
+      "tenant_name": "Mandantenname",
+      "logo_url": "Logo-URL",
+      "logo_helper": "URL zu Ihrem Firmenlogo (PNG/JPG/SVG)",
+      "ai_title": "KI-Konfiguration",
+      "ai_key": "Gemini API Schlüssel",
+      "ai_placeholder": "Leer lassen für unverändert",
+      "ai_helper": "Erforderlich für KI-Assistent-Funktionen.",
+      "save_btn": "Änderungen speichern",
+      "saving": "Speichert...",
+      "success": "Einstellungen erfolgreich aktualisiert",
+      "copied": "In die Zwischenablage kopiert"
+    },
+    "team": {
+      "title": "Teammitglieder",
+      "add": "Mitglied hinzufügen",
+      "username": "Benutzername",
+      "role": "Rolle",
+      "created_at": "Erstellt am",
+      "password": "Passwort",
+      "delete_confirm": "Diesen Benutzer löschen? Dies kann nicht rückgängig gemacht werden.",
+      "create_btn": "Erstellen"
+    },
     "jobs": {
       "tooltip": "Hintergrund-Jobs",
       "title": "Job Monitor",

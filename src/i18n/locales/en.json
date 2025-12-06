@@ -68,6 +68,57 @@
     "logout": "Logout",
     "global_calendar_label": "Global Calendar",
     "global_calendar_desc": "Overview of all bookings across all your events.",
+    "header": {
+      "language": "Language",
+      "light_mode": "Light Mode",
+      "dark_mode": "Dark Mode",
+      "settings": "Settings",
+      "tenant_id": "Tenant ID",
+      "toggle_theme": "Toggle Theme"
+    },
+    "dashboard_page": {
+      "welcome": "Welcome back. Here is what's happening today.",
+      "stats": {
+        "today": "Bookings Today",
+        "active": "Total Active Bookings",
+        "events": "Active Events"
+      },
+      "search_placeholder": "Search events...",
+      "active": "Active",
+      "past": "Past",
+      "no_active": "No active events found.",
+      "show_past": "Show Past Events",
+      "hide_past": "Hide Past Events",
+      "ended": "Ended"
+    },
+    "settings": {
+      "title": "Settings & Team",
+      "general_title": "General Settings",
+      "tenant_id": "Tenant ID",
+      "login_url": "Team Login URL",
+      "login_url_helper": "Share this link with your team members to login directly.",
+      "tenant_name": "Tenant Name",
+      "logo_url": "Logo URL",
+      "logo_helper": "URL to your company logo (PNG/JPG/SVG)",
+      "ai_title": "AI Configuration",
+      "ai_key": "Gemini API Key",
+      "ai_placeholder": "Leave empty to keep unchanged",
+      "ai_helper": "Required for AI Assistant features.",
+      "save_btn": "Save Changes",
+      "saving": "Saving...",
+      "success": "Settings updated successfully",
+      "copied": "Copied to clipboard"
+    },
+    "team": {
+      "title": "Team Members",
+      "add": "Add Member",
+      "username": "Username",
+      "role": "Role",
+      "created_at": "Created At",
+      "password": "Password",
+      "delete_confirm": "Delete this user? This cannot be undone.",
+      "create_btn": "Create"
+    },
     "jobs": {
       "tooltip": "Background Jobs",
       "title": "Background Jobs Monitor",

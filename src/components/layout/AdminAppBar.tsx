@@ -42,6 +42,8 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
         router.push(finalUrl);
     };
 
+    const t = dict.admin.header;
+
     return (
         <>
             <AppBar
@@ -70,7 +72,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                                 <Typography variant="subtitle1" sx={{ fontWeight: '700', lineHeight: 1.1, color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {tenantName || dict.admin.dashboard}
                                 </Typography>
-                                <Tooltip title="Tenant ID">
+                                <Tooltip title={t.tenant_id}>
                                     <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', opacity: 0.8, display: { xs: 'none', sm: 'block' } }}>
                                         {tenantId?.substring(0, 8)}...
                                     </Typography>
@@ -97,7 +99,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                             <MenuItem value="de">🇩🇪 DE</MenuItem>
                         </Select>
 
-                        <Tooltip title="Toggle Theme">
+                        <Tooltip title={t.toggle_theme}>
                             <IconButton
                                 onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}
                                 size="small"
@@ -117,7 +119,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                         </Tooltip>
 
                         <Link href={`/${lang}/admin/settings`} passHref>
-                            <IconButton title="Settings" color="default">
+                            <IconButton title={t.settings} color="default">
                                 <SettingsIcon />
                             </IconButton>
                         </Link>
@@ -132,6 +134,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                         </Button>
                     </Box>
 
+                    {/* Mobile Menu Icon */}
                     <IconButton
                         sx={{ display: { xs: 'flex', md: 'none' }, ml: 1 }}
                         onClick={() => setMobileMenuOpen(true)}
@@ -151,7 +154,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                     <List>
                         <ListItem>
                             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, px: 2 }}>
-                                Language
+                                {t.language}
                             </Typography>
                             <Select
                                 value={lang}
@@ -170,7 +173,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                                 <ListItemIcon>
                                     {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
                                 </ListItemIcon>
-                                <ListItemText primary={mode === 'dark' ? "Light Mode" : "Dark Mode"} />
+                                <ListItemText primary={mode === 'dark' ? t.light_mode : t.dark_mode} />
                             </ListItemButton>
                         </ListItem>
 
@@ -187,7 +190,7 @@ export default function AdminAppBar({ lang, dict }: { lang: string, dict: Dictio
                             <ListItem disablePadding>
                                 <ListItemButton onClick={() => setMobileMenuOpen(false)}>
                                     <ListItemIcon><SettingsIcon /></ListItemIcon>
-                                    <ListItemText primary="Settings" />
+                                    <ListItemText primary={t.settings} />
                                 </ListItemButton>
                             </ListItem>
                         </Link>

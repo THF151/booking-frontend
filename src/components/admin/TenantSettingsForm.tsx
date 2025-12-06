@@ -7,13 +7,14 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
-import { Tenant } from '@/types';
+import { Tenant, Dictionary } from '@/types';
 
 interface Props {
     lang: string;
+    dict: Dictionary;
 }
 
-export default function TenantSettingsForm({ lang }: Props) {
+export default function TenantSettingsForm({ lang, dict }: Props) {
     const { tenantId, setTenantInfo } = useAuthStore();
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
@@ -21,6 +22,8 @@ export default function TenantSettingsForm({ lang }: Props) {
     const [aiKey, setAiKey] = useState('');
     const [showAiKey, setShowAiKey] = useState(false);
     const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    const t = dict.admin.settings;
 
     useEffect(() => {
         if (!tenantId) return;
@@ -36,7 +39,7 @@ export default function TenantSettingsForm({ lang }: Props) {
             api.put<Tenant>(`/tenants`, data),
         onSuccess: (data: Tenant) => {
             setTenantInfo(data.name, data.logo_url);
-            setMsg({ type: 'success', text: 'Settings updated successfully' });
+            setMsg({ type: 'success', text: t.success });
             setAiKey('');
         },
         onError: (err: Error) => setMsg({ type: 'error', text: err.message || 'Update failed' })
@@ -54,7 +57,7 @@ export default function TenantSettingsForm({ lang }: Props) {
     const handleCopy = (text: string) => {
         if (text) {
             navigator.clipboard.writeText(text);
-            setMsg({ type: 'success', text: 'Copied to clipboard' });
+            setMsg({ type: 'success', text: t.copied });
             setTimeout(() => setMsg(null), 2000);
         }
     };
@@ -65,13 +68,13 @@ export default function TenantSettingsForm({ lang }: Props) {
 
     return (
         <Box component="form" onSubmit={handleSubmit} maxWidth={600}>
-            <Typography variant="h6" gutterBottom>General Settings</Typography>
+            <Typography variant="h6" gutterBottom>{t.general_title}</Typography>
 
             {msg && <Alert severity={msg.type} sx={{ mb: 2 }}>{msg.text}</Alert>}
 
             <Stack spacing={3}>
                 <TextField
-                    label="Tenant ID"
+                    label={t.tenant_id}
                     value={tenantId || ''}
                     fullWidth
                     slotProps={{
@@ -91,7 +94,7 @@ export default function TenantSettingsForm({ lang }: Props) {
 
                 {loginUrl && (
                     <TextField
-                        label="Team Login URL"
+                        label={t.login_url}
                         value={loginUrl}
                         fullWidth
                         slotProps={{
@@ -110,12 +113,12 @@ export default function TenantSettingsForm({ lang }: Props) {
                             }
                         }}
                         variant="filled"
-                        helperText="Share this link with your team members to login directly."
+                        helperText={t.login_url_helper}
                     />
                 )}
 
                 <TextField
-                    label="Tenant Name"
+                    label={t.tenant_name}
                     value={name}
                     onChange={e => setName(e.target.value)}
                     fullWidth
@@ -124,11 +127,11 @@ export default function TenantSettingsForm({ lang }: Props) {
 
                 <Stack direction="row" spacing={2} alignItems="flex-start">
                     <TextField
-                        label="Logo URL"
+                        label={t.logo_url}
                         value={logoUrl}
                         onChange={e => setLogoUrl(e.target.value)}
                         fullWidth
-                        helperText="URL to your company logo (PNG/JPG/SVG)"
+                        helperText={t.logo_helper}
                     />
                     {logoUrl && (
                         <Box sx={{ width: 56, height: 56, flexShrink: 0, border: '1px solid', borderColor: 'divider', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -139,16 +142,16 @@ export default function TenantSettingsForm({ lang }: Props) {
                 </Stack>
 
                 <Divider />
-                <Typography variant="h6">AI Configuration</Typography>
+                <Typography variant="h6">{t.ai_title}</Typography>
 
                 <TextField
-                    label="Gemini API Key"
+                    label={t.ai_key}
                     type={showAiKey ? 'text' : 'password'}
                     value={aiKey}
                     onChange={e => setAiKey(e.target.value)}
                     fullWidth
-                    placeholder="Leave empty to keep unchanged"
-                    helperText="Required for AI Assistant features."
+                    placeholder={t.ai_placeholder}
+                    helperText={t.ai_helper}
                     slotProps={{
                         input: {
                             endAdornment: (
@@ -164,7 +167,7 @@ export default function TenantSettingsForm({ lang }: Props) {
 
                 <Box>
                     <Button type="submit" variant="contained" disabled={updateMutation.isPending}>
-                        {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                        {updateMutation.isPending ? t.saving : t.save_btn}
                     </Button>
                 </Box>
             </Stack>

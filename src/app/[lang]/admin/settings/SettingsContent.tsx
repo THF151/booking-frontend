@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import TeamMemberTable from '@/components/admin/TeamMemberTable';
 import TenantSettingsForm from '@/components/admin/TenantSettingsForm';
+import { Dictionary } from '@/types';
 
-export default function SettingsContent({ lang }: { lang: string }) {
+export default function SettingsContent({ lang, dict }: { lang: string, dict: Dictionary }) {
     const { isAuthenticated, _hasHydrated } = useAuthStore();
     const router = useRouter();
 
@@ -29,18 +30,20 @@ export default function SettingsContent({ lang }: { lang: string }) {
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 10 }}>
             <Breadcrumbs sx={{ mb: 3 }}>
-                <Link href={`/${lang}/admin/dashboard`} style={{ textDecoration: 'none', color: 'inherit' }}>Dashboard</Link>
-                <Typography color="text.primary">Settings</Typography>
+                <Link href={`/${lang}/admin/dashboard`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    {dict.admin.dashboard}
+                </Link>
+                <Typography color="text.primary">{dict.admin.header.settings}</Typography>
             </Breadcrumbs>
 
-            <Typography variant="h4" fontWeight="bold" mb={4}>Settings & Team</Typography>
+            <Typography variant="h4" fontWeight="bold" mb={4}>{dict.admin.settings.title}</Typography>
 
             <Paper sx={{ p: 4, mb: 4 }}>
-                <TenantSettingsForm lang={lang} />
+                <TenantSettingsForm lang={lang} dict={dict} />
             </Paper>
 
             <Paper sx={{ p: 4 }}>
-                <TeamMemberTable />
+                <TeamMemberTable dict={dict} />
             </Paper>
         </Container>
     );

@@ -59,6 +59,7 @@ function StatCard({ title, value, icon: Icon, color }: StatCardProps) {
 function EventCard({ ev, lang, dict }: { ev: Event, lang: string, dict: Dictionary }) {
     const isManual = ev.schedule_type === 'MANUAL';
     const isPast = dayjs(ev.active_end).isBefore(dayjs());
+    const t = dict.admin.dashboard_page;
 
     return (
         <Card
@@ -109,7 +110,7 @@ function EventCard({ ev, lang, dict }: { ev: Event, lang: string, dict: Dictiona
                 {isPast && (
                     <Chip
                         icon={<HistoryIcon fontSize="small"/>}
-                        label="Ended"
+                        label={t.ended}
                         size="small"
                         color="default"
                         sx={{ alignSelf: 'flex-start', mb: 2 }}
@@ -135,6 +136,7 @@ export default function DashboardClient({ lang, dict }: { lang: string, dict: Di
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const queryClient = useQueryClient();
+    const t = dict.admin.dashboard_page;
 
     const [openCreate, setOpenCreate] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -229,7 +231,7 @@ export default function DashboardClient({ lang, dict }: { lang: string, dict: Di
                                 {dict.admin.dashboard}
                             </Typography>
                             <Typography variant="body1" color="text.secondary">
-                                Welcome back. Here is what&apos;s happening today.
+                                {t.welcome}
                             </Typography>
                         </Box>
                         <Link href={`/${lang}/admin/events/create`} passHref>
@@ -241,13 +243,13 @@ export default function DashboardClient({ lang, dict }: { lang: string, dict: Di
 
                     <Grid container spacing={3} mb={4}>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <StatCard title="Bookings Today" value={stats.bookingsToday} icon={TrendingUpIcon} color="#10B981" />
+                            <StatCard title={t.stats.today} value={stats.bookingsToday} icon={TrendingUpIcon} color="#10B981" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <StatCard title="Total Active Bookings" value={stats.totalBookings} icon={PeopleIcon} color="#3B82F6" />
+                            <StatCard title={t.stats.active} value={stats.totalBookings} icon={PeopleIcon} color="#3B82F6" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                            <StatCard title="Active Events" value={stats.activeCount} icon={EventAvailableIcon} color="#8B5CF6" />
+                            <StatCard title={t.stats.events} value={stats.activeCount} icon={EventAvailableIcon} color="#8B5CF6" />
                         </Grid>
                     </Grid>
 
@@ -270,7 +272,7 @@ export default function DashboardClient({ lang, dict }: { lang: string, dict: Di
                         <Box>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                                 <TextField
-                                    placeholder="Search events..."
+                                    placeholder={t.search_placeholder}
                                     size="small"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -284,7 +286,7 @@ export default function DashboardClient({ lang, dict }: { lang: string, dict: Di
                                     }}
                                 />
                                 <Typography variant="caption" color="text.secondary">
-                                    {activeEvents.length} Active / {pastEvents.length} Past
+                                    {activeEvents.length} {t.active} / {pastEvents.length} {t.past}
                                 </Typography>
                             </Box>
 
@@ -301,7 +303,7 @@ export default function DashboardClient({ lang, dict }: { lang: string, dict: Di
 
                                     {activeEvents.length === 0 && (
                                         <Paper sx={{ p: 6, textAlign: 'center', bgcolor: 'transparent' }} variant="outlined">
-                                            <Typography color="text.secondary">No active events found.</Typography>
+                                            <Typography color="text.secondary">{t.no_active}</Typography>
                                         </Paper>
                                     )}
 
@@ -314,7 +316,7 @@ export default function DashboardClient({ lang, dict }: { lang: string, dict: Di
                                                 color="inherit"
                                                 sx={{ mb: 2 }}
                                             >
-                                                {showPastEvents ? "Hide Past Events" : `Show Past Events (${pastEvents.length})`}
+                                                {showPastEvents ? t.hide_past : `${t.show_past} (${pastEvents.length})`}
                                             </Button>
 
                                             <Collapse in={showPastEvents}>

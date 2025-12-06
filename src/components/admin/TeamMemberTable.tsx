@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import dayjs from 'dayjs';
+import { Dictionary } from '@/types';
 
 interface User {
     id: string;
@@ -18,9 +19,10 @@ interface User {
     created_at: string;
 }
 
-export default function TeamMemberTable() {
+export default function TeamMemberTable({ dict }: { dict: Dictionary }) {
     const { tenantId, user } = useAuthStore();
     const queryClient = useQueryClient();
+    const t = dict.admin.team;
 
     const [openAdd, setOpenAdd] = useState(false);
     const [newUsername, setNewUsername] = useState('');
@@ -57,16 +59,16 @@ export default function TeamMemberTable() {
     };
 
     const handleDelete = (id: string) => {
-        if (confirm("Delete this user? This cannot be undone.")) {
+        if (confirm(t.delete_confirm)) {
             deleteMutation.mutate(id);
         }
     };
 
     const columns: GridColDef[] = [
-        { field: 'username', headerName: 'Username', width: 200 },
-        { field: 'role', headerName: 'Role', width: 120 },
+        { field: 'username', headerName: t.username, width: 200 },
+        { field: 'role', headerName: t.role, width: 120 },
         {
-            field: 'created_at', headerName: 'Created At', width: 200,
+            field: 'created_at', headerName: t.created_at, width: 200,
             valueFormatter: (val) => dayjs(val).format('YYYY-MM-DD HH:mm')
         },
         {
@@ -90,9 +92,9 @@ export default function TeamMemberTable() {
     return (
         <Box>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">Team Members</Typography>
+                <Typography variant="h6">{t.title}</Typography>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAdd(true)}>
-                    Add Member
+                    {t.add}
                 </Button>
             </Box>
 
@@ -106,19 +108,19 @@ export default function TeamMemberTable() {
             </Paper>
 
             <Dialog open={openAdd} onClose={() => setOpenAdd(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>Add Team Member</DialogTitle>
+                <DialogTitle>{t.add}</DialogTitle>
                 <DialogContent>
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                     <Stack spacing={2} mt={1}>
                         <TextField
-                            label="Username"
+                            label={t.username}
                             value={newUsername}
                             onChange={e => setNewUsername(e.target.value)}
                             fullWidth
                             autoFocus
                         />
                         <TextField
-                            label="Password"
+                            label={t.password}
                             type="password"
                             value={newPassword}
                             onChange={e => setNewPassword(e.target.value)}
@@ -127,8 +129,8 @@ export default function TeamMemberTable() {
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setOpenAdd(false)}>Cancel</Button>
-                    <Button onClick={handleAdd} variant="contained">Create</Button>
+                    <Button onClick={() => setOpenAdd(false)}>{dict.common.cancel}</Button>
+                    <Button onClick={handleAdd} variant="contained">{t.create_btn}</Button>
                 </DialogActions>
             </Dialog>
         </Box>

@@ -172,12 +172,63 @@ export interface Dictionary {
         login_title: string;
         register_title: string;
         dashboard: string;
-        logout: string;
         events: string;
         create_event: string;
         manage: string;
+        logout: string;
         global_calendar_label: string;
         global_calendar_desc: string;
+        header: {
+            language: string;
+            light_mode: string;
+            dark_mode: string;
+            settings: string;
+            tenant_id: string;
+            toggle_theme: string;
+        };
+        dashboard_page: {
+            welcome: string;
+            stats: {
+                today: string;
+                active: string;
+                events: string;
+            };
+            search_placeholder: string;
+            active: string;
+            past: string;
+            no_active: string;
+            show_past: string;
+            hide_past: string;
+            ended: string;
+        };
+        settings: {
+            title: string;
+            general_title: string;
+            tenant_id: string;
+            login_url: string;
+            login_url_helper: string;
+            tenant_name: string;
+            logo_url: string;
+            logo_helper: string;
+            ai_title: string;
+            ai_key: string;
+            ai_placeholder: string;
+            ai_helper: string;
+            save_btn: string;
+            saving: string;
+            success: string;
+            copied: string;
+        };
+        team: {
+            title: string;
+            add: string;
+            username: string;
+            role: string;
+            created_at: string;
+            password: string;
+            delete_confirm: string;
+            create_btn: string;
+        };
         jobs: {
             tooltip: string;
             title: string;
