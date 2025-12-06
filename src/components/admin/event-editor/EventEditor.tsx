@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Snackbar, Alert } from '@mui/material';
 import EventEditorLayout from './EventEditorLayout';
 import GeneralSection from './GeneralSection';
 import AvailabilitySection from './AvailabilitySection';
@@ -53,6 +54,7 @@ export default function EventEditor({ initialData, dict, lang }: Props) {
     const { tenantId, tenantLogo } = useAuthStore();
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const fmtDate = (d: string) => d ? dayjs(d).format('YYYY-MM-DDTHH:mm') : '';
 
@@ -122,6 +124,12 @@ export default function EventEditor({ initialData, dict, lang }: Props) {
 
     const handleSave = async () => {
         if (!tenantId) return;
+
+        if (!form.slug || form.slug.trim() === '') {
+            setErrorMsg("Slug is required.");
+            return;
+        }
+
         setIsSaving(true);
 
         const payload = {
@@ -145,7 +153,11 @@ export default function EventEditor({ initialData, dict, lang }: Props) {
             }
         } catch (e) {
             console.error(e);
-            alert("Save failed");
+            if (e instanceof Error) {
+                setErrorMsg(e.message || "Save failed");
+            } else {
+                setErrorMsg("Save failed");
+            }
         } finally {
             setIsSaving(false);
         }
@@ -159,31 +171,44 @@ export default function EventEditor({ initialData, dict, lang }: Props) {
     };
 
     return (
-        <EventEditorLayout
-            title={initialData ? (lang === 'de' ? form.title_de : form.title_en) : dict.admin.create_event}
-            lang={lang}
-            dict={dict}
-            onSave={handleSave}
-            isSaving={isSaving}
-            isDirty={isDirty}
-            onBack={handleBack}
-        >
-            {(section) => (
-                <>
-                    {section === 'general' && (
-                        <GeneralSection form={form} onChange={handleChange} dict={dict} isEdit={!!initialData} />
-                    )}
-                    {section === 'availability' && (
-                        <AvailabilitySection form={form} onChange={handleChange} dict={dict} />
-                    )}
-                    {section === 'settings' && (
-                        <SettingsSection form={form} onChange={handleChange} dict={dict} />
-                    )}
-                    {section === 'notifications' && (
-                        <NotificationsSection form={form} dict={dict} eventId={initialData?.id} lang={lang} />
-                    )}
-                </>
-            )}
-        </EventEditorLayout>
+        <>
+            <EventEditorLayout
+                title={initialData ? (lang === 'de' ? form.title_de : form.title_en) : dict.admin.create_event}
+                lang={lang}
+                dict={dict}
+                onSave={handleSave}
+                isSaving={isSaving}
+                isDirty={isDirty}
+                onBack={handleBack}
+            >
+                {(section) => (
+                    <>
+                        {section === 'general' && (
+                            <GeneralSection form={form} onChange={handleChange} dict={dict} isEdit={!!initialData} />
+                        )}
+                        {section === 'availability' && (
+                            <AvailabilitySection form={form} onChange={handleChange} dict={dict} />
+                        )}
+                        {section === 'settings' && (
+                            <SettingsSection form={form} onChange={handleChange} dict={dict} />
+                        )}
+                        {section === 'notifications' && (
+                            <NotificationsSection form={form} dict={dict} eventId={initialData?.id} lang={lang} />
+                        )}
+                    </>
+                )}
+            </EventEditorLayout>
+
+            <Snackbar
+                open={!!errorMsg}
+                autoHideDuration={6000}
+                onClose={() => setErrorMsg(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert severity="error" onClose={() => setErrorMsg(null)} variant="filled">
+                    {errorMsg}
+                </Alert>
+            </Snackbar>
+        </>
     );
 }

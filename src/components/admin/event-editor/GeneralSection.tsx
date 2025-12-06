@@ -17,7 +17,6 @@ export default function GeneralSection({ form, onChange, dict, isEdit }: Props) 
 
     return (
         <Stack spacing={4}>
-            {/* Basic Info Card */}
             <Paper sx={{ p: 4, borderRadius: 2 }}>
                 <Typography variant="h6" fontWeight="bold" mb={3}>{t.general}</Typography>
 
@@ -31,6 +30,8 @@ export default function GeneralSection({ form, onChange, dict, isEdit }: Props) 
                             disabled={isEdit}
                             helperText={t.slug_helper}
                             variant="outlined"
+                            required
+                            error={!isEdit && !form.slug}
                         />
                         <TextField
                             select
@@ -54,7 +55,6 @@ export default function GeneralSection({ form, onChange, dict, isEdit }: Props) 
                 </Stack>
             </Paper>
 
-            {/* Content Card */}
             <Paper sx={{ p: 4, borderRadius: 2 }}>
                 <Typography variant="h6" fontWeight="bold" mb={3}>{t.content}</Typography>
 

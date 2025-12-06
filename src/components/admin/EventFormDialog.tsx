@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button,
     TextField, Stack, MenuItem, Box, Typography, Switch, Autocomplete,
-    ToggleButton, ToggleButtonGroup
+    ToggleButton, ToggleButtonGroup, Alert
 } from '@mui/material';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
@@ -53,6 +53,7 @@ export default function EventFormDialog({ open, onClose, onSuccess, initialData,
     const { tenantId, tenantLogo } = useAuthStore();
     const t = dict?.admin?.event_form || {};
     const common = dict?.common || {};
+    const [error, setError] = useState<string | null>(null);
 
     const fmtDate = (d: string) => d ? dayjs(d).format('YYYY-MM-DDTHH:mm') : '';
 
@@ -113,6 +114,7 @@ export default function EventFormDialog({ open, onClose, onSuccess, initialData,
 
     const handleChange = (field: keyof EventFormState, value: string | number) => {
         setForm(prev => ({ ...prev, [field]: value }));
+        setError(null);
     };
 
     const toggleDay = (day: string) => {
@@ -138,6 +140,12 @@ export default function EventFormDialog({ open, onClose, onSuccess, initialData,
     };
 
     const handleSubmit = async () => {
+        setError(null);
+        if (!form.slug || form.slug.trim() === '') {
+            setError("Slug is required.");
+            return;
+        }
+
         const url = initialData
             ? `/${tenantId}/events/${initialData.slug}`
             : `/${tenantId}/events`;
@@ -162,6 +170,11 @@ export default function EventFormDialog({ open, onClose, onSuccess, initialData,
             onSuccess();
         } catch (e) {
             console.error(e);
+            if (e instanceof Error) {
+                setError(e.message || "Save failed");
+            } else {
+                setError("Save failed");
+            }
         }
     };
 
@@ -173,6 +186,7 @@ export default function EventFormDialog({ open, onClose, onSuccess, initialData,
 
             <DialogContent sx={{ pt: 3 }}>
                 <Stack spacing={4}>
+                    {error && <Alert severity="error">{error}</Alert>}
                     <Box>
                         <Typography variant="overline" color="text.secondary" fontWeight="bold">{t.general || 'General'}</Typography>
                         <Stack direction="row" spacing={2} mt={1}>
@@ -182,6 +196,8 @@ export default function EventFormDialog({ open, onClose, onSuccess, initialData,
                                 onChange={e => handleChange('slug', e.target.value)}
                                 disabled={!!initialData}
                                 helperText={t.slug_helper}
+                                required
+                                error={!initialData && !form.slug}
                             />
                             <TextField select fullWidth label={t.access_mode || 'Access Mode'} value={form.access_mode} onChange={e => handleChange('access_mode', e.target.value)}>
                                 <MenuItem value="OPEN">Open (Public)</MenuItem>
