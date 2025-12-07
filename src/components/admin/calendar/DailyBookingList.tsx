@@ -11,7 +11,6 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import dayjs, { Dayjs } from 'dayjs';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Dictionary, Booking, BookingLabel, Event } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
@@ -181,14 +180,6 @@ export default function DailyBookingList({
 
     const activeCount = selectedBookings.filter(b => b.status !== 'CANCELLED').length;
 
-    const listVariants = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.05 }
-        }
-    };
-
     return (
         <Paper
             elevation={0}
@@ -248,35 +239,26 @@ export default function DailyBookingList({
 
             <Box sx={{ flex: 1, overflowY: 'auto', p: viewMode === 'comfortable' ? 3 : 0, bgcolor: viewMode === 'comfortable' ? 'background.default' : 'background.paper' }}>
                 {selectedBookings.length === 0 ? (
-                    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5, minHeight: 200 }}>
                         <EventIcon sx={{ fontSize: 64, mb: 2, color: 'text.disabled' }} />
                         <Typography variant="h6" color="text.secondary">{dict.admin.calendar_tab.no_bookings}</Typography>
                     </Box>
                 ) : (
-                    <Box
-                        component={motion.div}
-                        variants={listVariants}
-                        initial="hidden"
-                        animate="show"
-                        key={selectedDateStr}
-                        sx={{ display: 'flex', flexDirection: 'column', gap: viewMode === 'comfortable' ? 2 : 0 }}
-                    >
-                        <AnimatePresence mode="wait">
-                            {selectedBookings.map((booking) => (
-                                <BookingListItem
-                                    key={booking.id}
-                                    booking={booking}
-                                    start={dayjs(booking.start_time).tz(currentTz)}
-                                    end={dayjs(booking.end_time).tz(currentTz)}
-                                    eventTitle={getEventTitle(booking.event_id)}
-                                    labels={labels}
-                                    viewMode={viewMode}
-                                    isStampMode={!!stampLabelId}
-                                    onStamp={handleStamp}
-                                    onAction={handleBookingAction}
-                                />
-                            ))}
-                        </AnimatePresence>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: viewMode === 'comfortable' ? 2 : 0 }}>
+                        {selectedBookings.map((booking) => (
+                            <BookingListItem
+                                key={booking.id}
+                                booking={booking}
+                                start={dayjs(booking.start_time).tz(currentTz)}
+                                end={dayjs(booking.end_time).tz(currentTz)}
+                                eventTitle={getEventTitle(booking.event_id)}
+                                labels={labels}
+                                viewMode={viewMode}
+                                isStampMode={!!stampLabelId}
+                                onStamp={handleStamp}
+                                onAction={handleBookingAction}
+                            />
+                        ))}
                     </Box>
                 )}
             </Box>
