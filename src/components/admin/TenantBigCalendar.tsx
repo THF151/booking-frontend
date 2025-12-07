@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Box } from '@mui/material';
 import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -54,11 +54,25 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
         enabled: !!tenantId
     });
 
-    const activeBookings = bookings.filter(b => b.status !== 'CANCELLED');
+    const activeBookings = useMemo(() =>
+            bookings.filter(b => b.status !== 'CANCELLED'),
+        [bookings]);
+
+    const bookingsByDate = useMemo(() => {
+        const map = new Map<string, Booking[]>();
+        bookings.forEach(b => {
+            const dateStr = dayjs(b.start_time).tz(currentTz).format('YYYY-MM-DD');
+            if (!map.has(dateStr)) {
+                map.set(dateStr, []);
+            }
+            map.get(dateStr)!.push(b);
+        });
+        return map;
+    }, [bookings, currentTz]);
 
     const handleLabelUpdate = async (bookingId: string, labelId: string | null) => {
         try {
-            await api.put(`/${tenantId}/bookings/${bookingId}`, { label_id: labelId || "" });
+            await api.put(`/${tenantId}/bookings/${bookingId}`, { label_id: labelId || "", payout: null });
             refetch();
         } catch (e) {
             console.error(e);
@@ -101,7 +115,8 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
                     onDateChange={setSelectedDate}
                     currentTz={currentTz}
                     onTzChange={setCurrentTz}
-                    activeBookings={activeBookings}
+                    bookingsByDate={bookingsByDate}
+                    activeBookingsCount={activeBookings.length}
                     loading={loading}
                     onRefresh={() => refetch()}
                     onOpenLabelManager={() => setLabelManagerOpen(true)}
@@ -132,7 +147,7 @@ export default function TenantBigCalendar({ dict, lang, events, eventSlug }: Ten
 
                 <DailyBookingList
                     selectedDate={selectedDate}
-                    bookings={bookings}
+                    bookingsByDate={bookingsByDate}
                     labels={labels}
                     events={events}
                     currentTz={currentTz}

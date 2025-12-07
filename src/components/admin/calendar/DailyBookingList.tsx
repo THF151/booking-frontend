@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Box, Paper, Typography, Chip, Stack, ToggleButton, ToggleButtonGroup,
     Popover, TextField, Button, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -20,7 +20,7 @@ import BookingListItem from './BookingListItem';
 
 interface DailyBookingListProps {
     selectedDate: Dayjs | null;
-    bookings: Booking[];
+    bookingsByDate: Map<string, Booking[]>;
     labels: BookingLabel[];
     events: Event[];
     currentTz: string;
@@ -48,7 +48,7 @@ const generateToken = (existingTokens: Set<string>): string => {
 };
 
 export default function DailyBookingList({
-                                             selectedDate, bookings, labels, events, currentTz, lang, dict, eventSlug, stampLabelId
+                                             selectedDate, bookingsByDate, labels, events, currentTz, lang, dict, eventSlug, stampLabelId
                                          }: DailyBookingListProps) {
     const { tenantId } = useAuthStore();
     const queryClient = useQueryClient();
@@ -57,21 +57,21 @@ export default function DailyBookingList({
     const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'comfortable' | 'compact'>('comfortable');
 
-    // Token management state
     const [tokenAnchorEl, setTokenAnchorEl] = useState<null | HTMLElement>(null);
     const [activeTokenBooking, setActiveTokenBooking] = useState<Booking | null>(null);
     const [tempToken, setTempToken] = useState('');
     const [snackMsg, setSnackMsg] = useState<string | null>(null);
 
-    // Custom Payout State
     const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
     const [customPayout, setCustomPayout] = useState('');
 
     const selectedDateStr = selectedDate?.format('YYYY-MM-DD');
 
-    const selectedBookings = bookings
-        .filter(b => dayjs(b.start_time).tz(currentTz).format('YYYY-MM-DD') === selectedDateStr)
-        .sort((a, b) => dayjs(a.start_time).valueOf() - dayjs(b.start_time).valueOf());
+    const selectedBookings = useMemo(() => {
+        if (!selectedDateStr) return [];
+        const bookings = bookingsByDate.get(selectedDateStr) || [];
+        return bookings.sort((a, b) => dayjs(a.start_time).valueOf() - dayjs(b.start_time).valueOf());
+    }, [bookingsByDate, selectedDateStr]);
 
     const getEventTitle = (eventId: string) => {
         const evt = events.find(e => e.id === eventId);
@@ -121,7 +121,7 @@ export default function DailyBookingList({
     const handleCustomPayoutOpen = () => {
         setLabelMenuAnchor(null);
         setPayoutDialogOpen(true);
-        const booking = bookings.find(b => b.id === activeBookingId);
+        const booking = selectedBookings.find(b => b.id === activeBookingId);
         if (booking) {
             if (booking.payout !== null && booking.payout !== undefined) {
                 setCustomPayout(booking.payout.toString());
@@ -169,7 +169,7 @@ export default function DailyBookingList({
     };
 
     const handleGenerateToken = () => {
-        const existingTokens = new Set(bookings.map(r => r.token).filter(Boolean) as string[]);
+        const existingTokens = new Set(selectedBookings.map(r => r.token).filter(Boolean) as string[]);
         const newToken = generateToken(existingTokens);
         setTempToken(newToken);
     };
@@ -188,8 +188,7 @@ export default function DailyBookingList({
             transition: { staggerChildren: 0.05 }
         }
     };
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    labels.find(l => l.id === stampLabelId)?.color;
+
     return (
         <Paper
             elevation={0}

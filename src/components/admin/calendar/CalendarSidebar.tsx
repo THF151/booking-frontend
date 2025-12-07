@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Box, Paper, Typography, Stack, IconButton, Tooltip, Button, Divider, Menu, MenuItem
 } from '@mui/material';
@@ -21,7 +21,8 @@ interface CalendarSidebarProps {
     onDateChange: (date: Dayjs | null) => void;
     currentTz: string;
     onTzChange: (tz: string) => void;
-    activeBookings: Booking[];
+    bookingsByDate: Map<string, Booking[]>;
+    activeBookingsCount: number;
     loading: boolean;
     onRefresh: () => void;
     onOpenLabelManager: () => void;
@@ -33,35 +34,51 @@ interface CalendarSidebarProps {
     dict: Dictionary;
 }
 
+interface ServerDayProps extends PickersDayProps {
+    highlightedDays?: Record<string, number>;
+}
+
+function ServerDay(props: ServerDayProps) {
+    const { day, outsideCurrentMonth, highlightedDays = {}, ...other } = props;
+
+    const dateStr = (day as Dayjs).format('YYYY-MM-DD');
+    const count = highlightedDays[dateStr] || 0;
+
+    const isSelected = !outsideCurrentMonth && count > 0;
+
+    return (
+        <Badge
+            key={day ? day.toString() : 'empty'}
+            overlap="circular"
+            badgeContent={isSelected ? count : undefined}
+            color={count > 5 ? "error" : "primary"}
+            sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16, minWidth: 16, fontWeight: 'bold' } }}
+        >
+            <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />
+        </Badge>
+    );
+}
+
 export default function CalendarSidebar({
-                                            selectedDate, onDateChange, currentTz, onTzChange, activeBookings,
-                                            loading, onRefresh, onOpenLabelManager, onExportICS, onExportCSV, onExportExcel, onExportBella,
+                                            selectedDate, onDateChange, currentTz, onTzChange, bookingsByDate,
+                                            activeBookingsCount, loading, onRefresh, onOpenLabelManager,
+                                            onExportICS, onExportCSV, onExportExcel, onExportBella,
                                             lang, dict
                                         }: CalendarSidebarProps) {
     const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
-    function ServerDay(props: PickersDayProps & { highlightedDays?: number[] }) {
-        const { day, outsideCurrentMonth, ...other } = props;
-        const dateStr = day.format('YYYY-MM-DD');
-        const dayBookings = activeBookings.filter(b => {
-            return dayjs(b.start_time).tz(currentTz).format('YYYY-MM-DD') === dateStr;
+    const highlightedDays = useMemo(() => {
+        const counts: Record<string, number> = {};
+
+        bookingsByDate.forEach((list, date) => {
+            const activeCount = list.filter(b => b.status !== 'CANCELLED').length;
+            if (activeCount > 0) {
+                counts[date] = activeCount;
+            }
         });
 
-        const count = dayBookings.length;
-        const isSelected = !props.outsideCurrentMonth && count > 0;
-
-        return (
-            <Badge
-                key={day.toString()}
-                overlap="circular"
-                badgeContent={isSelected ? count : undefined}
-                color={count > 5 ? "error" : "primary"}
-                sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16, minWidth: 16, fontWeight: 'bold' } }}
-            >
-                <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />
-            </Badge>
-        );
-    }
+        return counts;
+    }, [bookingsByDate]);
 
     return (
         <Stack spacing={3} sx={{ height: '100%' }}>
@@ -89,6 +106,11 @@ export default function CalendarSidebar({
                     onChange={onDateChange}
                     loading={loading}
                     slots={{ day: ServerDay }}
+                    slotProps={{
+                        day: {
+                            highlightedDays
+                        } as Partial<ServerDayProps>
+                    }}
                     sx={{
                         width: '100%',
                         '& .MuiPickersDay-root': { width: 36, height: 36, fontSize: '0.9rem', borderRadius: 2 },
@@ -104,7 +126,7 @@ export default function CalendarSidebar({
 
                 <Box sx={{ width: '100%', textAlign: 'center' }}>
                     <Typography variant="caption" color="text.secondary" fontWeight="500">
-                        {dict.admin.calendar_tab.total_bookings}: <Box component="span" color="primary.main" fontWeight="bold" fontSize="1rem">{activeBookings.length}</Box>
+                        {dict.admin.calendar_tab.total_bookings}: <Box component="span" color="primary.main" fontWeight="bold" fontSize="1rem">{activeBookingsCount}</Box>
                     </Typography>
                 </Box>
             </Paper>
@@ -121,7 +143,7 @@ export default function CalendarSidebar({
                     color="secondary"
                     fullWidth
                     onClick={(e) => setExportMenuAnchor(e.currentTarget)}
-                    disabled={activeBookings.length === 0}
+                    disabled={activeBookingsCount === 0}
                     endIcon={<ExpandMoreIcon />}
                     sx={{
                         mt: 1,
