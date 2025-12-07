@@ -210,13 +210,11 @@ export default function AdminBookingTable({ slug, eventTimezone, dict }: AdminBo
 
     const [emailDialog, setEmailDialog] = useState<{open: boolean, booking: Booking | null}>({open: false, booking: null});
 
-    // Token Popover State
     const [tokenAnchorEl, setTokenAnchorEl] = useState<null | HTMLElement>(null);
     const [activeTokenBooking, setActiveTokenBooking] = useState<Booking | null>(null);
     const [tempToken, setTempToken] = useState('');
     const [snackMsg, setSnackMsg] = useState<string | null>(null);
 
-    // Custom Payout Dialog State
     const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
     const [customPayout, setCustomPayout] = useState('');
 
@@ -293,7 +291,6 @@ export default function AdminBookingTable({ slug, eventTimezone, dict }: AdminBo
         setCustomPayout('');
     };
 
-    // Token Handlers
     const handleTokenClick = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
         event.stopPropagation();
         setTokenAnchorEl(event.currentTarget);
@@ -579,14 +576,14 @@ export default function AdminBookingTable({ slug, eventTimezone, dict }: AdminBo
             />
 
             {eventTimezone && (
-                <Box p={1} px={2}>
+                <Box p={1} px={2} flexShrink={0}>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                         Times displayed in event timezone: <strong>{eventTimezone}</strong>
                     </Typography>
                 </Box>
             )}
 
-            <Box sx={{ flex: 1, width: '100%' }}>
+            <Box sx={{ flex: 1, width: '100%', minHeight: 0 }}>
                 <DataGrid
                     rows={rows}
                     columns={columns}
@@ -596,13 +593,19 @@ export default function AdminBookingTable({ slug, eventTimezone, dict }: AdminBo
                             showQuickFilter: true,
                         },
                     }}
-                    sx={{ border: 'none' }}
                     initialState={{
                         pagination: {
                             paginationModel: { pageSize: 25, page: 0 },
                         },
                     }}
                     pageSizeOptions={[10, 25, 50, 100]}
+                    sx={{
+                        border: 0,
+                        '& .MuiDataGrid-main': { overflow: 'hidden' },
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}
+                    disableRowSelectionOnClick
                 />
             </Box>
 
